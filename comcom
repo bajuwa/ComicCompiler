@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# Dev TODOs:
-# 0) Upload to bajuwa github repo
-# 1) Upgrade the 'whitespace splitting' logic to handle mid-panel splits
-# 2) Alter option from 'min images per page' to 'minimum height of page'
-
 # Requirements: ImageMagick (needs to be on PATH)
 
 MIN_HEIGHT_PER_PAGE=5000
