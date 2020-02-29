@@ -7,7 +7,7 @@
 
 # Requirements: ImageMagick (needs to be on PATH)
 
-MIN_IMAGES_PER_PAGE=5
+MIN_HEIGHT_PER_PAGE=5000
 INPUT_IMAGE_NAME_PREFIX="image"
 IMAGE_FILE_EXTENSION="jpg"
 OUTPUT_PAGE_NAME_PREFIX="page"
@@ -15,13 +15,16 @@ INPUT_DIRECTORY="./"
 OUTPUT_DIRECTORY="./"
 SPLIT_ON_COLOUR=65535 # Decimal colour value (65535 = white)
 COLOUR_ERROR_TOLERANCE=0 # Just in case your 'whites' aren't perfectly white
+WHITESPACE_BREAK_MODE=0 # 0 for 'end of image', 1 for 'any whitespace within image'
+BREAK_POINT_ROW_CHECK_INCREMENTS=10
+LOGGING_MODE=0 # 0 for normal, 1 for debug, 2 for verbose
 
 # Parse for optional arguments
 for i in "$@"
 do
 case $1 in
-    -p|--images-per-page)
-    MIN_IMAGES_PER_PAGE=$2
+    -h|--min-height-per-page)
+    MIN_HEIGHT_PER_PAGE=$2
     shift # past argument=value
     ;;
     -i|--input-file-prefix)
@@ -32,7 +35,7 @@ case $1 in
     SPLIT_ON_COLOUR=$2
     shift # past argument=value
     ;;
-    -cE|--colour-error-tolerance|--color-error-tolerance)
+    -ce|--colour-error-tolerance|--color-error-tolerance)
     COLOUR_ERROR_TOLERANCE=$2
     shift # past argument=value
     ;;
@@ -52,38 +55,161 @@ case $1 in
     OUTPUT_DIRECTORY=$2
     shift # past argument=value
     ;;
+    -m|--whitespace-break-mode)
+    WHITESPACE_BREAK_MODE=$2
+    shift # past argument=value
+    ;;
+    -b|--break-point-row-check)
+    BREAK_POINT_ROW_CHECK_INCREMENTS=$2
+    shift # past argument=value
+    ;;
+    -l|--logging-mode)
+    LOGGING_MODE=$2
+    shift # past argument=value
+    ;;
+    --debug)
+    LOGGING_MODE=1
+    ;;
+    --verbose)
+    LOGGING_MODE=2
+    ;;
 esac
 shift
 done
 
-echo "Running ComCom with options: "
-echo "MIN_IMAGES_PER_PAGE=$MIN_IMAGES_PER_PAGE"
-echo "INPUT_IMAGE_NAME_PREFIX=$INPUT_IMAGE_NAME_PREFIX"
-echo "OUTPUT_PAGE_NAME_PREFIX=$OUTPUT_PAGE_NAME_PREFIX"
-echo "INPUT_DIRECTORY=$INPUT_DIRECTORY"
-echo "OUTPUT_DIRECTORY=$OUTPUT_DIRECTORY"
-echo "IMAGE_FILE_EXTENSION=$IMAGE_FILE_EXTENSION"
-echo "SPLIT_ON_COLOUR=$SPLIT_ON_COLOUR"
-echo "COLOUR_ERROR_TOLERANCE=$COLOUR_ERROR_TOLERANCE"
-echo ""
+if [ $LOGGING_MODE -ge 1 ]
+then
+	echo "Running ComCom with options: "
+	echo "LOGGING_MODE=$LOGGING_MODE"
+	echo "MIN_HEIGHT_PER_PAGE=$MIN_HEIGHT_PER_PAGE"
+	echo "INPUT_IMAGE_NAME_PREFIX=$INPUT_IMAGE_NAME_PREFIX"
+	echo "OUTPUT_PAGE_NAME_PREFIX=$OUTPUT_PAGE_NAME_PREFIX"
+	echo "INPUT_DIRECTORY=$INPUT_DIRECTORY"
+	echo "OUTPUT_DIRECTORY=$OUTPUT_DIRECTORY"
+	echo "IMAGE_FILE_EXTENSION=$IMAGE_FILE_EXTENSION"
+	echo "SPLIT_ON_COLOUR=$SPLIT_ON_COLOUR"
+	echo "COLOUR_ERROR_TOLERANCE=$COLOUR_ERROR_TOLERANCE"
+	echo "WHITESPACE_BREAK_MODE=$WHITESPACE_BREAK_MODE"
+	echo "BREAK_POINT_ROW_CHECK_INCREMENTS=$BREAK_POINT_ROW_CHECK_INCREMENTS"
+	echo ""
+fi
+
+# Setup global vars
+cropFromTop=0
+cropFromBottom=0
+cropFromTopNextPage=0
+
+function findBreakPoint {
+	# $1 should be the file name
+	width=$(identify -format "%w" $1)
+	height=$(identify -format "%h" $1)
+	for ((i = $height-1; i >= 0; i-=$BREAK_POINT_ROW_CHECK_INCREMENTS))
+	do
+		fileSampling=$1"["$width"x1+0+"$i"]"
+		grayMeanValue=$(identify -format %[mean] $fileSampling)
+		standardDeviation=$(identify -format %[standard-deviation] $fileSampling)
+		colourDifference=$((${grayMeanValue%.*} - $SPLIT_ON_COLOUR))
+		if [ $colourDifference -le $COLOUR_ERROR_TOLERANCE ] && [ ${standardDeviation%.*} -eq 0 ]
+		then 
+			if [ ! $i -eq $((height-1)) ]
+			then
+				cropFromBottom=$((height-i-1))
+				cropFromTopNextPage=$i
+			else
+				cropFromBottom=0
+				cropFromTopNextPage=0
+			fi
+			[ $LOGGING_MODE -ge 1 ] && echo "Found whitespace breakpoint in: "$1
+			[ $LOGGING_MODE -ge 2 ] && echo "cropFromBottom: "$cropFromBottom
+			[ $LOGGING_MODE -ge 2 ] && echo "cropFromTopNextPage: "$cropFromTopNextPage
+			return 0
+		fi
+	done
+
+	# If we couldn't find a breakpoint, then return 0's
+	cropFromBottom=0
+	cropFromTopNextPage=0
+	[ $LOGGING_MODE -ge 2 ] && echo "Could not find whitespace breakpoint in: "$1
+	return 1
+};
 
 function fileEndsInWhitespace {
-  # $1 should be the file name
-  width=$(identify -format "%w" $1)
-  height=$(identify -format "%h" $1)
-  height=$((height-1))
-  fileSampling="$1["$width"x1+0+$height]"
-  grayMeanValue=$(identify -format %[mean] $fileSampling)
-  standardDeviation=$(identify -format %[standard-deviation] $fileSampling)
-  colourDifference=$((${grayMeanValue%.*} - $SPLIT_ON_COLOUR))
-  if [ $colourDifference -le $COLOUR_ERROR_TOLERANCE ] && [ ${standardDeviation%.*} -lt 1 ]
+	# $1 should be the file name
+	width=$(identify -format "%w" $1)
+	height=$(identify -format "%h" $1)
+	height=$((height-1))
+	fileSampling="$1["$width"x1+0+$height]"
+	grayMeanValue=$(identify -format %[mean] $fileSampling)
+	standardDeviation=$(identify -format %[standard-deviation] $fileSampling)
+	colourDifference=$((${grayMeanValue%.*} - $SPLIT_ON_COLOUR))
+	if [ $colourDifference -le $COLOUR_ERROR_TOLERANCE ] && [ ${standardDeviation%.*} -lt 1 ]
 	then 
-		#echo "This image ends in whitespace: " $1;
+		[ $LOGGING_MODE -ge 1 ] && echo "This image ends in whitespace: " $1;
 		true
 	else 
-		#echo "This image does not end in whitespace: " $1;
+		[ $LOGGING_MODE -ge 2 ] && echo "This image does not end in whitespace: " $1;
 		false
-  fi
+	fi
+};
+
+function cropFromTopAndBottom {
+	fileToCrop=$1
+	pixelToCropFromTop=$2
+	pixelToCropFromBottom=$3
+	
+	[ $LOGGING_MODE -ge 2 ] && echo "Cropping file $fileToCrop";
+	[ $LOGGING_MODE -ge 2 ] && echo "pixelToCropFromTop: $pixelToCropFromTop";
+	[ $LOGGING_MODE -ge 2 ] && echo "pixelToCropFromBottom: $pixelToCropFromBottom";
+	
+	pageWidth=$(identify -format "%w" $fileToCrop)
+	pageTotalHeight=$(identify -format "%h" $fileToCrop)
+	pageCroppedHeight=$((pageTotalHeight-pixelToCropFromTop-pixelToCropFromBottom))
+	[ $LOGGING_MODE -ge 2 ] && echo "pageTotalHeight: $pageTotalHeight";
+	[ $LOGGING_MODE -ge 2 ] && echo "pageCroppedHeight: $pageCroppedHeight";
+	
+	cropSampleRange=$pageWidth"x"$pageCroppedHeight"+0+"$pixelToCropFromTop
+	[ $LOGGING_MODE -ge 1 ] && echo "Cropping: $fileToCrop[$cropSampleRange]";
+	convert -crop $cropSampleRange $fileToCrop $fileToCrop
+	
+	return
+};
+
+function findBatchSizeForNextPage {
+	[ $LOGGING_MODE -ge 1 ] && echo "Finding batch size for $pageFileName starting at $imageIndex";
+	imageBatchSize=0;
+	
+	cumulativePageHeight=0;
+	# find the next page separation spot (test for line of whitespace)
+	while [ $imageBatchSize -lt $((totalImageCount-imageIndex)) ]
+	do
+		imageIndexToTest=$((imageIndex+imageBatchSize))
+		imageFileToTest=${imageFileNames[$imageIndexToTest]}
+		# Check if totalHeight + thisImagesHeight > minRequiredHeight
+		# If so, start looking for whitespace at the minRequiredHeight - totalHeight
+		# Add next images height to the overall height
+		# If whitespace found, store cropFromBottom + cropFromTop for later and break loop
+		if [ $cumulativePageHeight -ge $MIN_HEIGHT_PER_PAGE ] && [ $imageIndexToTest -lt $((totalImageCount-1)) ]
+		then
+			[ $LOGGING_MODE -ge 1 ] && echo "Reached min page height $MIN_HEIGHT_PER_PAGE, checking for breakpoint in $imageFileToTest";
+			if [ $WHITESPACE_BREAK_MODE -eq 1 ] 
+			then
+				if findBreakPoint $imageFileToTest
+				then
+					break
+				fi
+			else
+				if fileEndsInWhitespace $imageFileToTest
+				then
+					break
+				fi
+			fi
+		else
+			[ $LOGGING_MODE -ge 2 ] && echo "Haven't reach min page height $MIN_HEIGHT_PER_PAGE, current height: $cumulativePageHeight";
+		fi
+		imageHeight=$(identify -format "%h" $imageFileToTest)
+		cumulativePageHeight=$((cumulativePageHeight+imageHeight))
+		imageBatchSize=$((imageBatchSize+1))
+	done
 };
 
 function combineImages {
@@ -92,29 +218,34 @@ function combineImages {
 	totalImageCount=${#imageFileNames[@]};
 
 	while [ $imageIndex -lt $totalImageCount ]
-	do
-		imageBatchSize=$MIN_IMAGES_PER_PAGE
-		# find the next page separation spot (test for line of whitespace)
-		# MVP : just test for images that end with one complete line of all whitespace
-		# Upgrade : test for whitespace in middle of file (if has whitespace, then append and crop both pages)
-		while [ $imageBatchSize -lt $((totalImageCount-imageIndex)) ]
-		do
-			imageIndexToTest=$((imageIndex+imageBatchSize))
-			# If the image we're on ends in clean whitespace, break loop to end using that file
-			if fileEndsInWhitespace ${imageFileNames[$imageIndexToTest]}
-				then break
-				else imageBatchSize=$((imageBatchSize+1))
-			fi
-		done
+	do		
+		pageFileName=$(printf "$OUTPUT_PAGE_NAME_PREFIX%03d.$IMAGE_FILE_EXTENSION" $pageIndex)
+		
+		findBatchSizeForNextPage
 		
 		# Now that we've picked out our image range, combine them to a single file
-		pageFileName=$(printf "$OUTPUT_PAGE_NAME_PREFIX%03d.$IMAGE_FILE_EXTENSION" $pageIndex)
-		echo "Combining into '$pageFileName': $imageIndex - $((imageIndex+imageBatchSize))"
+		echo "Combining "$((imageBatchSize+1))" images into '$pageFileName': $imageIndex - $((imageIndex+imageBatchSize))"
 		convert -append ${imageFileNames[@]:$imageIndex:$imageBatchSize+1} -colorspace sRGB $OUTPUT_DIRECTORY$pageFileName;
+		
+		# If we have cropFromBottom/cropFromTop, then perform crop on recently created page
+		if [ $((cropFromBottom+cropFromTop)) -gt 0 ]
+		then
+			cropFromTopAndBottom $OUTPUT_DIRECTORY$pageFileName $cropFromTop $cropFromBottom;
+		else
+			[ $LOGGING_MODE -ge 2 ] && echo "No cropping occurred for $pageFileName";
+		fi
+		
+		if [ $cropFromBottom -eq 0 ]
+		then
+			imageBatchSize=$((imageBatchSize+1))
+		fi
 		
 		# Increment our index for the next round
 		pageIndex=$((pageIndex+1));
-		imageIndex=$((imageIndex+imageBatchSize+1));
+		imageIndex=$((imageIndex+imageBatchSize));
+		cropFromTop=$cropFromTopNextPage;
+		
+		[ $LOGGING_MODE -ge 1 ] && echo "";
 	done
 };
 
@@ -130,8 +261,11 @@ if [ ${#imageFileNames[@]} -eq 0 ];
 then
     echo "Couldn't find any images to combine";
 else
+	start=$(date +%s)
 	mkdir -p $OUTPUT_DIRECTORY;
     combineImages;
+	end=$(date +%s)
+	totalTime=$(($end-$start))
 	echo ""
-	echo "Comic Compilation - Complete!"
+	echo "Comic Compilation - Complete! (time: "$totalTime"s)"
 fi
