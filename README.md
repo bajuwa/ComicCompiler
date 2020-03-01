@@ -2,9 +2,11 @@
 Given a set of images, vertically combines them in to 'pages' where the start/end of the page are solid white (or some other specified colour).
 
 ## Installation
-1. Install ImageMagick: https://imagemagick.org/script/download.php
+1. Make sure you can run shell scripts. 
+     1. If you're on Windows then you'll need to download the bash or sh executables, or just install something like Git Bash (https://git-scm.com/downloads) that you can use instead of the default command line terminal
+2. Install ImageMagick: https://imagemagick.org/script/download.php
      1. When installing, an option to 'add to path' should already be selected for you. This is required so don't uncheck it!
-2. Download the **comcom** file and put it in either:
+3. Download the **comcom** file and put it in either:
      1. The directory you want to use it in, or;
      2. In any location on your computer and add that location to your PATH
   
