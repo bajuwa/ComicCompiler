@@ -6,6 +6,7 @@
 // @author       bajuwa
 // @match        *kuaikanmanhua.com/web/comic/*
 // @match        *pufeimanhua.com/chapter/*
+// @match        *ac.qq.com/ComicView*
 // @grant        GM_download
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -122,9 +123,11 @@ function findImagesFromSource(sourceHref) {
         return $("img.comicimg");
     } else if (sourceHref.includes("kuaikanmanhua")) {
         return $("img[src*=kkmh.com/image]");
+    } else if (sourceHref.includes("ac.qq")) {
+        return $("img[src*=manhua_detail]");
     } else {
         console.log("WARNING: Could not determine appropriate scraping criteria, downloading all images");
-        return $("img");
+        return $("img[src^=jpg]");
     }
 }
 
