@@ -2,7 +2,8 @@
 Given a set of images, vertically combines them in to 'pages' where the start/end of the page are solid white (or some other specified colour).
 
 ## Installation
-1. Install ImageMagick and make sure it's added to your PATH: https://imagemagick.org/script/download.php
+1. Install ImageMagick: https://imagemagick.org/script/download.php
+     1. When installing, an option to 'add to path' should already be selected for you. This is required so don't uncheck it!
 2. Download the **comcom** file and put it in either:
      1. The directory you want to use it in, or;
      2. In any location on your computer and add that location to your PATH
@@ -89,3 +90,8 @@ If the images aren't always the exact same colour but are often within a range o
 **Default:** 0  
 Controls how much text is output to the console while the script is running. Mode 0 only reports the bare minimum of which image range was compiled into which page file.  Mode 1 (aka debug) reports additional info that describes which broad 'decisions' were made during the scripts execution. Mode 2 (aka verbose) will report everything in debug mode as well as specific data values that lead to the script decisions.   
 **Example:** `comcom -l 1` is equivalent to `comcom --debug` and `comcom -l 2` is equivalent to `comcom --verbose`
+
+### ImageMagick Version
+**Shorthand:** -im6, -im7
+**Default:** Version 7  
+This flag will allow you to specify a specific version of ImageMagick to use when running **comcom**. By default it uses Version 7 (`-im7`) as that's the most recent version available at the time I write this.  Version 6 is also supported via the `-im6` flag.
