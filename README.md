@@ -54,7 +54,7 @@ The path to the directory you want to put the new page files in. By default it's
 **Default:** 0  
 The "mode" that the script uses to detect where to split up pages.
 **Mode 0:** This is the simplest mode and runs in just a few seconds. After reaching your specified **Minimum Page Height** requirement, it will then keep adding images to the page until it adds an image the *ends in a single line of whitespace*. This means that if your series of images often split panels across images, you will likely generate randomly long page files.  If that's the case, then use mode 1 instead.
-**Mode 1:** This is a more complex algorithm that takes quite a bit longer (usually around a minute per chapter depending on input) as it will search the entire image for a breakpoint instead of just the last line of the file.  While this mode takes longer, it often produces more consistent page sizes.
+**Mode 1:** This is a more complex algorithm that could take a bit longer as it may need to search the entire image for a breakpoint instead of just the last line of the file.  While this mode takes longer, it often produces more consistent page sizes as it can better handle long unbroken panels or images that don't neatly cut between panels.
 
 ### Break Point Row Check Increments
 **Shorthand:** -bi [text]   
