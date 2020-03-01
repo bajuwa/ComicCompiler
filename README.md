@@ -52,9 +52,9 @@ The path to the directory you want to put the new page files in. By default it's
 **Shorthand:** -m [number]   
 **Longhand:** --whitespace-break-mode [number]   
 **Default:** 0  
-The "mode" that the script uses to detect where to split up pages.
-**Mode 0:** This is the simplest mode and runs in just a few seconds. After reaching your specified **Minimum Page Height** requirement, it will then keep adding images to the page until it adds an image the *ends in a single line of whitespace*. This means that if your series of images often split panels across images, you will likely generate randomly long page files.  If that's the case, then use mode 1 instead.
-**Mode 1:** This is a more complex algorithm that could take a bit longer as it may need to search the entire image for a breakpoint instead of just the last line of the file.  While this mode takes longer, it often produces more consistent page sizes as it can better handle long unbroken panels or images that don't neatly cut between panels.
+The "mode" that the script uses to detect where to split up pages. In general, the script will continue to combine images until it  reaches your specified **Minimum Page Height** requirement. After that requirement is hit, it will then start looking for *whitespace* to break on. This mode setting controls how the script tries to find these break points.   
+**Mode 0:** This is the simplest mode and runs the fastest. It will try to break pages when it adds an image that *ends in a single line of whitespace*. This means that if your series of images often split panels across images, you will likely generate randomly long page files.  If that's the case, then use mode 1 instead.   
+**Mode 1:** This is a more complex algorithm that could take a bit longer as it may need to search the entire image for a breakpoint instead of just the last line of the file.  While this mode takes longer, it often produces more consistent page sizes as it can better handle long unbroken panels or images that don't neatly cut between panels.   
 
 ### Break Point Row Check Increments
 **Shorthand:** -bi [text]   
@@ -68,7 +68,7 @@ When in **Whitespace Break Mode #1** this value controls how often the script te
 **Longhand:** --break-points-multiplier [number]   
 **Default:** 20  
 When in **Whitespace Break Mode #1** this value controls how large of a vertical area is pre-tested for *whitespace* before iterating over rows via **Break Point Row Check Increments**.   
-**Example:** When running `comcom -m 1 -bi 10 -bm 20` this script will first check a vertical strip down the center of the image that's 200 pixels tall (where bi of 10 times bm of 20 equals 200). If this 200 pixel space doesn't contain any *whitespace* then the script will skip that area and check the next area of 200 pixels. This value can help reduce the number of horizontal rows tested which will reduce script run time.  
+**Example:** When running `comcom -m 1 -bi 10 -bm 20` this script will first check a vertical strip down the center of the image that's 200 pixels tall (where bi of 10 times bm of 20 equals 200). If this 200 pixel space doesn't contain any *whitespace* then the script will skip that area and check the next area of 200 pixels. This value can help reduce the number of horizontal rows tested which will reduce script run time.     
 **Note:** When increasing/decreasing the **Check Increments** value, consider decreasing/increasing the **Check Multiplier** such that you stay in a range close to 200-300 pixels, otherwise you may lose performance benefits.
 
 ### Split Pages on Colour
@@ -87,5 +87,5 @@ If the images aren't always the exact same colour but are often within a range o
 **Shorthand:** -l [number]   
 **Longhand:** --logging-mode [number], --debug, --verbose   
 **Default:** 0  
-Controls how much text is output to the console while the script is running. Mode 0 only reports the bare minimum of which image range was compiled into which page file.  Mode 1 (aka debug) reports additional info that describes which broad 'decisions' were made during the scripts execution. Mode 2 (aka verbose) will report everything in debug mode as well as specific data values that lead to the script decisions.
+Controls how much text is output to the console while the script is running. Mode 0 only reports the bare minimum of which image range was compiled into which page file.  Mode 1 (aka debug) reports additional info that describes which broad 'decisions' were made during the scripts execution. Mode 2 (aka verbose) will report everything in debug mode as well as specific data values that lead to the script decisions.   
 **Example:** `comcom -l 1` is equivalent to `comcom --debug` and `comcom -l 2` is equivalent to `comcom --verbose`
