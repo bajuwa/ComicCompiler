@@ -56,12 +56,20 @@ The "mode" that the script uses to detect where to split up pages.
 **Mode 0:** This is the simplest mode and runs in just a few seconds. After reaching your specified **Minimum Page Height** requirement, it will then keep adding images to the page until it adds an image the *ends in a single line of whitespace*. This means that if your series of images often split panels across images, you will likely generate randomly long page files.  If that's the case, then use mode 1 instead.
 **Mode 1:** This is a more complex algorithm that takes quite a bit longer (usually around a minute per chapter depending on input) as it will search the entire image for a breakpoint instead of just the last line of the file.  While this mode takes longer, it often produces more consistent page sizes.
 
-### Output Page File Prefix
-**Shorthand:** -b [text]   
-**Longhand:** --break-point-row-check [number]   
+### Break Point Row Check Increments
+**Shorthand:** -bi [text]   
+**Longhand:** --break-points-increment [number]   
 **Default:** 10  
 When in **Whitespace Break Mode #1** this value controls how often the script tests a line in an image file for whitespace. Increasing this value will make the script run faster, but may cause smaller whitespace gaps to be missed when trying to split.  Reducing the value will do the opposite: script runs slower but will more reliably detect smaller whitespace gaps between panels.   
-**Example:** When running `comcom -m 1 -b 10` the script will check row 0 for whitespace, then row 10, then row 20, until it either finds whitespace or reaches the end of the file.
+**Example:** When running `comcom -m 1 -bi 10` the script will check row 0 for whitespace, then row 10, then row 20, until it either finds whitespace or reaches the end of the file.
+
+### Break Point Row Check Multiplier
+**Shorthand:** -bm [text]   
+**Longhand:** --break-points-multiplier [number]   
+**Default:** 20  
+When in **Whitespace Break Mode #1** this value controls how large of a vertical area is pre-tested for *whitespace* before iterating over rows via **Break Point Row Check Increments**.   
+**Example:** When running `comcom -m 1 -bi 10 -bm 20` this script will first check a vertical strip down the center of the image that's 200 pixels tall (where bi of 10 times bm of 20 equals 200). If this 200 pixel space doesn't contain any *whitespace* then the script will skip that area and check the next area of 200 pixels. This value can help reduce the number of horizontal rows tested which will reduce script run time.  
+**Note:** When increasing/decreasing the **Check Increments** value, consider decreasing/increasing the **Check Multiplier** such that you stay in a range close to 200-300 pixels, otherwise you may lose performance benefits.
 
 ### Split Pages on Colour
 **Shorthand:** -c [number]   
