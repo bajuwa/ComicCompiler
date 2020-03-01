@@ -15,6 +15,11 @@ BREAK_POINT_ROW_CHECK_INCREMENTS=10
 BREAK_POINT_ROW_CHECK_BATCH_MULTIPLIER=20
 LOGGING_MODE=0 # 0 for normal, 1 for debug, 2 for verbose
 
+# ImageMagick commands (change depending on version, default v7)
+IM_VERSION=7
+IM_IDENTIFY="magick identify"
+IM_CONVERT="magick convert"
+
 # Parse for optional arguments
 for i in "$@"
 do
@@ -73,14 +78,28 @@ case $1 in
     --verbose)
     LOGGING_MODE=2
     ;;
+    -im6)
+	IM_VERSION=6
+	IM_IDENTIFY="identify"
+	IM_CONVERT="convert"
+    ;;
+    -im7)
+	IM_VERSION=7
+	IM_IDENTIFY="magick identify"
+	IM_CONVERT="magick convert"
+    ;;
 esac
 shift
 done
+
+hash $IM_IDENTIFY 2>/dev/null || { echo >&2 "I require the ImageMagick command '$IM_IDENTIFY' but it's not installed.  Aborting."; exit 1; }
+hash $IM_CONVERT 2>/dev/null || { echo >&2 "I require the ImageMagick command '$IM_CONVERT' but it's not installed.  Aborting."; exit 1; }
 
 if [ $LOGGING_MODE -ge 1 ]
 then
 	echo "Running ComCom with options: "
 	echo "LOGGING_MODE=$LOGGING_MODE"
+	echo "IM_VERSION=$IM_VERSION"
 	echo "MIN_HEIGHT_PER_PAGE=$MIN_HEIGHT_PER_PAGE"
 	echo "INPUT_IMAGE_NAME_PREFIX=$INPUT_IMAGE_NAME_PREFIX"
 	echo "OUTPUT_PAGE_NAME_PREFIX=$OUTPUT_PAGE_NAME_PREFIX"
@@ -102,8 +121,8 @@ cropFromTopNextPage=0
 
 function fileEndsInBreakPoint {
 	fileSampling="$currentImageFileName["$currentImageWidth"x1+0+$((currentImageHeight-1))]"
-	grayMeanValue=$(identify -format %[mean] $fileSampling)
-	standardDeviation=$(identify -format %[standard-deviation] $fileSampling)
+	grayMeanValue=$($IM_IDENTIFY -format %[mean] $fileSampling)
+	standardDeviation=$($IM_IDENTIFY -format %[standard-deviation] $fileSampling)
 	colourDifference=$((${grayMeanValue%.*} - $SPLIT_ON_COLOUR))
 	if [ ${colourDifference#-} -le $COLOUR_ERROR_TOLERANCE ] && [ ${standardDeviation%.*} -lt 1 ]
 	then 
@@ -143,12 +162,12 @@ function findBreakPoint {
 		for ((i = $rowBeingChecked; i < $maxRowToCheck; i+=$BREAK_POINT_ROW_CHECK_INCREMENTS))
 		do
 			fileSampling=$currentImageFileName"["$currentImageWidth"x1+0+"$i"]"
-			grayMeanValue=$(identify -format %[mean] $fileSampling)
+			grayMeanValue=$($IM_IDENTIFY -format %[mean] $fileSampling)
 			colourDifference=$((${grayMeanValue%.*} - $SPLIT_ON_COLOUR))
 			if [ ${colourDifference#-} -le $COLOUR_ERROR_TOLERANCE ]
 			then 
 				[ $LOGGING_MODE -ge 2 ] && echo "Colour value $grayMeanValue was within tolerance $SPLIT_ON_COLOUR +-$COLOUR_ERROR_TOLERANCE"
-				standardDeviation=$(identify -format %[standard-deviation] $fileSampling)
+				standardDeviation=$($IM_IDENTIFY -format %[standard-deviation] $fileSampling)
 				if [ ${standardDeviation%.*} -eq 0 ]
 				then 
 					cropFromBottom=$((currentImageHeight-i-1))
@@ -177,8 +196,8 @@ function fileSampleContainsColour {
 	
 	[ $LOGGING_MODE -ge 2 ] && echo "Checking line for colour $colourToTest using sampling:" $fileSample;
 
-	grayMinValue=$(identify -format %[min] $fileSample)
-	grayMaxValue=$(identify -format %[max] $fileSample)
+	grayMinValue=$($IM_IDENTIFY -format %[min] $fileSample)
+	grayMaxValue=$($IM_IDENTIFY -format %[max] $fileSample)
 	[ $LOGGING_MODE -ge 2 ] && echo "File colour range: $grayMinValue-$grayMaxValue";
 	
 	if [ $colourToTest -lt $grayMinValue ] || [ $grayMaxValue -lt $colourToTest ]
@@ -197,14 +216,14 @@ function cropFromTopAndBottom {
 	[ $LOGGING_MODE -ge 2 ] && echo "pixelToCropFromTop: $pixelToCropFromTop";
 	[ $LOGGING_MODE -ge 2 ] && echo "pixelToCropFromBottom: $pixelToCropFromBottom";
 	
-	pageTotalHeight=$(identify -format "%h" $fileToCrop)
+	pageTotalHeight=$($IM_IDENTIFY -format "%h" $fileToCrop)
 	pageCroppedHeight=$((pageTotalHeight-pixelToCropFromTop-pixelToCropFromBottom))
 	[ $LOGGING_MODE -ge 2 ] && echo "pageTotalHeight: $pageTotalHeight";
 	[ $LOGGING_MODE -ge 2 ] && echo "pageCroppedHeight: $pageCroppedHeight";
 	
 	cropSampleRange=$currentImageWidth"x"$pageCroppedHeight"+0+"$pixelToCropFromTop
 	[ $LOGGING_MODE -ge 1 ] && echo "Cropping: $fileToCrop[$cropSampleRange]";
-	convert -crop $cropSampleRange $fileToCrop $fileToCrop
+	$IM_CONVERT -crop $cropSampleRange $fileToCrop $fileToCrop
 	
 	return
 };
@@ -220,8 +239,8 @@ function findBatchSizeForNextPage {
 		imageIndexToTest=$((imageIndex+imageBatchSize))
 		currentImageFileName=${imageFileNames[$imageIndexToTest]}
 		
-		currentImageWidth=$(identify -format "%w" $currentImageFileName)
-		currentImageHeight=$(identify -format "%h" $currentImageFileName)
+		currentImageWidth=$($IM_IDENTIFY -format "%w" $currentImageFileName)
+		currentImageHeight=$($IM_IDENTIFY -format "%h" $currentImageFileName)
 		
 		# Check if totalHeight + thisImagesHeight > minRequiredHeight
 		# If so, start looking for whitespace at the minRequiredHeight - totalHeight
@@ -263,7 +282,7 @@ function combineImages {
 		
 		# Now that we've picked out our image range, combine them to a single file
 		echo "Combining "$((imageBatchSize+1))" images into '$pageFileName': $imageIndex - $((imageIndex+imageBatchSize))"
-		convert -append ${imageFileNames[@]:$imageIndex:$imageBatchSize+1} -colorspace sRGB $OUTPUT_DIRECTORY$pageFileName;
+		$IM_CONVERT -append ${imageFileNames[@]:$imageIndex:$imageBatchSize+1} -colorspace sRGB $OUTPUT_DIRECTORY$pageFileName;
 		
 		# If we have cropFromBottom/cropFromTop, then perform crop on recently created page
 		if [ $((cropFromBottom+cropFromTop)) -gt 0 ]
