@@ -14,6 +14,7 @@ WHITESPACE_BREAK_MODE=0 # 0 for 'end of image', 1 for 'any whitespace within ima
 BREAK_POINT_ROW_CHECK_INCREMENTS=10
 BREAK_POINT_ROW_CHECK_BATCH_MULTIPLIER=20
 LOGGING_MODE=0 # 0 for normal, 1 for debug, 2 for verbose
+CONFIRM_EXIT=0 # 0 for true, 1 for false
 
 # ImageMagick commands (change depending on version, default v7)
 IM_VERSION=7
@@ -88,6 +89,9 @@ case $1 in
 	IM_IDENTIFY="magick identify"
 	IM_CONVERT="magick convert"
     ;;
+    -x)
+    CONFIRM_EXIT=1
+    ;;
 esac
 shift
 done
@@ -139,34 +143,33 @@ function fileEndsInBreakPoint {
 function findBreakPoint {
 	[ $LOGGING_MODE -ge 1 ] && echo "Scanning file for breakpoint: "$currentImageFileName
 	
-	if fileEndsInBreakPoint
-	then
-		cropFromBottom=0
-		cropFromTopNextPage=0
-		return 0
-	fi
-	
 	outerBatchSize=$((BREAK_POINT_ROW_CHECK_INCREMENTS * BREAK_POINT_ROW_CHECK_BATCH_MULTIPLIER))
 	rowBeingChecked=0;
-	while [ $rowBeingChecked -lt $((currentImageHeight + outerBatchSize)) ]
+	while [ $rowBeingChecked -lt $currentImageHeight ]
 	do
-		maxRowToCheck=$(( rowBeingChecked >= currentImageHeight ? currentImageHeight-1 : rowBeingChecked ))
-		batchFileSample=$currentImageFileName"["$currentImageWidth"x1+0+"$maxRowToCheck"]"
-		if ! fileSampleContainsColour $batchFileSample $SPLIT_ON_COLOUR
+		batchStart=$rowBeingChecked
+		batchEnd=$((rowBeingChecked + outerBatchSize))
+		batchEnd=$(( batchEnd >= currentImageHeight ? currentImageHeight-1 : batchEnd ))
+		batchFileSample=$currentImageFileName"["$currentImageWidth"x1+0+"$rowBeingChecked"]"
+		[ $LOGGING_MODE -ge 2 ] && echo "Checking batch for possible breakpoint: $batchStart-$batchEnd"
+		if ! fileSampleContainsColour $batchFileSample $SPLIT_ON_COLOUR $COLOUR_ERROR_TOLERANCE
 		then
-			[ $LOGGING_MODE -ge 2 ] && echo "Colour not found in sample batch $rowBeingChecked-$((rowBeingChecked+outerBatchSize)), skipping to next batch"
+			[ $LOGGING_MODE -ge 1 ] && echo "Colour not found in sample batch $batchStart-$batchEnd, skipping to next batch"
 			rowBeingChecked=$((rowBeingChecked+outerBatchSize))
 			continue
+		else
+			[ $LOGGING_MODE -ge 2 ] && echo "Colour found in sample batch $batchStart-$batchEnd, checking rows for breakpoint"
 		fi
 		
-		for ((i = $rowBeingChecked; i < $maxRowToCheck; i+=$BREAK_POINT_ROW_CHECK_INCREMENTS))
+		for ((i = $rowBeingChecked; i < $batchEnd; i+=$BREAK_POINT_ROW_CHECK_INCREMENTS))
 		do
 			fileSampling=$currentImageFileName"["$currentImageWidth"x1+0+"$i"]"
 			grayMeanValue=$($IM_IDENTIFY -format %[mean] $fileSampling)
 			colourDifference=$((${grayMeanValue%.*} - $SPLIT_ON_COLOUR))
+			#[ $LOGGING_MODE -ge 2 ] && echo "Testing if mean gray value $grayMeanValue is within error tolerance $COLOUR_ERROR_TOLERANCE of breakpoint colour $SPLIT_ON_COLOUR, calculating difference: $colourDifference"
 			if [ ${colourDifference#-} -le $COLOUR_ERROR_TOLERANCE ]
 			then 
-				[ $LOGGING_MODE -ge 2 ] && echo "Colour value $grayMeanValue was within tolerance $SPLIT_ON_COLOUR +-$COLOUR_ERROR_TOLERANCE"
+				#[ $LOGGING_MODE -ge 2 ] && echo "Colour value $grayMeanValue was within tolerance $SPLIT_ON_COLOUR +-$COLOUR_ERROR_TOLERANCE"
 				standardDeviation=$($IM_IDENTIFY -format %[standard-deviation] $fileSampling)
 				if [ ${standardDeviation%.*} -eq 0 ]
 				then 
@@ -176,6 +179,8 @@ function findBreakPoint {
 					[ $LOGGING_MODE -ge 2 ] && echo "cropFromBottom: "$cropFromBottom
 					[ $LOGGING_MODE -ge 2 ] && echo "cropFromTopNextPage: "$cropFromTopNextPage
 					return 0
+				else 
+					[ $LOGGING_MODE -ge 2 ] && echo "Colour value $grayMeanValue was within tolerance $SPLIT_ON_COLOUR +-$COLOUR_ERROR_TOLERANCE but standard-deviation was $standardDeviation"
 				fi
 			fi
 		done
@@ -193,6 +198,7 @@ function findBreakPoint {
 function fileSampleContainsColour {
 	fileSample=$1
 	colourToTest=$2
+	colourErrorTolerance=$3
 	
 	[ $LOGGING_MODE -ge 2 ] && echo "Checking line for colour $colourToTest using sampling:" $fileSample;
 
@@ -200,9 +206,12 @@ function fileSampleContainsColour {
 	grayMaxValue=$($IM_IDENTIFY -format %[max] $fileSample)
 	[ $LOGGING_MODE -ge 2 ] && echo "File colour range: $grayMinValue-$grayMaxValue";
 	
-	if [ $colourToTest -lt $grayMinValue ] || [ $grayMaxValue -lt $colourToTest ]
+	if [ $((colourToTest + colourErrorTolerance)) -ge $grayMinValue ] || [ $grayMaxValue -ge $((colourToTest - colourErrorTolerance)) ]
 	then
-		[ $LOGGING_MODE -ge 1 ] && echo "File sampling did not contain breakpoint colour";
+		[ $LOGGING_MODE -ge 2 ] && echo "File sampling contains breakpoint colour within error tolerance";
+		return 0;
+	else
+		[ $LOGGING_MODE -ge 1 ] && echo "File sampling did not contain breakpoint colour within error tolerance";
 		return 1;
 	fi
 }
@@ -241,6 +250,7 @@ function findBatchSizeForNextPage {
 		
 		currentImageWidth=$($IM_IDENTIFY -format "%w" $currentImageFileName)
 		currentImageHeight=$($IM_IDENTIFY -format "%h" $currentImageFileName)
+		[ $LOGGING_MODE -ge 2 ] && echo "Current image dimensions (WxH): $currentImageWidth x $currentImageHeight";
 		
 		# Check if totalHeight + thisImagesHeight > minRequiredHeight
 		# If so, start looking for whitespace at the minRequiredHeight - totalHeight
@@ -312,7 +322,7 @@ function combineImages {
 imageFileNames=()
 while IFS=  read -r -d $'\0'; do
     imageFileNames+=("$REPLY")
-done < <(find $INPUT_DIRECTORY -type f -iname "$INPUT_IMAGE_NAME_PREFIX*.$IMAGE_FILE_EXTENSION" -printf "%f\0")
+done < <(find $INPUT_DIRECTORY -type f -iname "$INPUT_IMAGE_NAME_PREFIX*.$IMAGE_FILE_EXTENSION" -print0)
 # echo ${imageFileNames[*]};
 
 if [ ${#imageFileNames[@]} -eq 0 ]; 
@@ -326,4 +336,10 @@ else
 	totalTime=$(($end-$start))
 	echo ""
 	echo "Comic Compilation - Complete! (time: "$totalTime"s)"
+fi
+
+if [ $CONFIRM_EXIT -gt 0 ] 
+then
+	echo ""
+	read -p "Press enter to exit"
 fi
