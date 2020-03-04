@@ -24,14 +24,36 @@ The minimum allowed pixel height per page.  When combining images, the script wi
 **Longhand:** --input-file-prefix [text]  
 **Default:** "image"  
 Will only combine images that start with this text.  
-**Example:** if a directory contains image001.jpg image002.jpg and test.jpg, and you run `comcom -i image`, only image001.jpg and image002.jpg will be combine in to the final page file.
+**Example:** if a directory contains image001.jpg image002.jpg and test.jpg, and you run `comcom -i image`, only image001.jpg and image002.jpg will be combined in to the final page file.
+
+### No Input File Name Prefix
+**Shorthand:** -np   
+**Longhand:** --no-prefix
+**Default:** "" (blank)  
+Will only combine any images that match the correct file extension. Overrides -i value.  
+**Example:** if a directory contains 001.jpg image002.jpg and test.jpg, and you run `comcom -np`, all three will be combined in to the final page file.
+
 
 ### File Extension
 **Shorthand:** -e [text]   
 **Longhand:** --extension [text]   
-**Default:** ".jpg"  
-The file extension of your input images and your output page files. This value is also included in the initial file selection pattern.  
-**Example:** if a directory contains image001.jpg image002.jpg and image003.png, and you run `comcom -e jpg`, only image001.jpg and image002.jpg will be combine in to the final page000.jpg file (the png file will be excluded).
+**Default:** ".jpg .jpeg .png" (will check for each file type)  
+The file extension of your input images. This value is also included in the initial file selection pattern.  
+**Example:** if a directory contains image001.jpg image002.jpg and image003.png, and you run `comcom -e jpg`, only image001.jpg and image002.jpg will be combine in to the final page000.jpg file (the png file will be excluded) otherwise jpg, jpeg and png will all be included. This also sets the output file extension unless set with -oe.
+
+### Additional File Extension
+**Shorthand:** -ae [text]   
+**Longhand:** --additional-extension [text]   
+**Default:** ".jpg .jpeg .png" (will check for each file type)  
+The adds another file extension of your input images. This value is also included in the initial file selection pattern.  
+**Example:** if a directory contains image001.jpg image002.bmp and image003.tiff, and you run `comcom -ae bmp`, only image001.jpg and image002.bmp will be combine in to the final page000.jpg file (the tiff file will be excluded). This leaves the default output extension as .jpg unless changed with -oe.
+
+### Output File Extension
+**Shorthand:** -oe [text]   
+**Longhand:** --output-extension [text]   
+**Default:** ".jpg" or value of -e if specified  
+The file extension of your output images and your output page files.  
+**Example:** if a directory contains image001.jpg image002.jpg and image003.png, and you run `comcom -oe png`, the compiled images will be page000.png instead of page000.jpg.  
 
 ### Output Page File Prefix
 **Shorthand:** -o [text]   
@@ -45,11 +67,23 @@ The text that will go at the start of each output page name. The prefix is follo
 **Default:** "./"  
 The path to the directory you want to collect image files from. By default it's set to "./" which refers to your **current working directory**, aka the location you're in when you run the script.
 
+### Include subDirectory
+**Shorthand:** -is   
+**Longhand:** --include-subDirectory   
+**Default:** false  
+This will include images in subfolders. For example, if folder there is ./chapter1/image1/image01.jpg and ./chapter1/image2/image02.jpg. If the input directory is ./chapter1 then by default, neither image will be found. Enabling this will include both images assuming they match the prefix pattern and file extensions. 
+
 ### Output Directory
 **Shorthand:** -od [text]   
 **Longhand:** --output-directory [text]   
-**Default:** "./"  
-The path to the directory you want to put the new page files in. By default it's set to "./" which refers to your **current working directory**, aka the location you're in when you run the script.
+**Default:** "./compiled"  
+The path to the directory you want to put the new page files in. By default it's set to "./compiled" which refers to a folder called compiled in your **current working directory**, aka the location you're in when you run the script. It will create the folder if it does not exist
+
+### Output Directory
+**Shorthand:** -oh   
+**Longhand:** --output-here   
+**Default:** "./compiled"  
+Sets the directory you want to put the new page files in as the same as "./" or **current working directory**, aka the location you're in when you run the script. By default it's set to "./compiled" which refers to a folder called compiled in your **current working directory**. 
 
 ### Whitespace Break Mode
 **Shorthand:** -m [number]   

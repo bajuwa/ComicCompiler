@@ -3,11 +3,13 @@
 # Requirements: ImageMagick (needs to be on PATH)
 
 MIN_HEIGHT_PER_PAGE=5000
+MAX_DIRECTORY_DEPTH=1
 INPUT_IMAGE_NAME_PREFIX="image"
-IMAGE_FILE_EXTENSION="jpg"
+INPUT_IMAGE_FILE_EXTENSIONS=("jpg" "jpeg" "png")
+OUTPUT_IMAGE_FILE_EXTENSION="jpg"
 OUTPUT_PAGE_NAME_PREFIX="page"
 INPUT_DIRECTORY="./"
-OUTPUT_DIRECTORY="./"
+OUTPUT_DIRECTORY="./Compiled/" # Default to subdirectory to prevent potential for output files to be used as input if rerun
 SPLIT_ON_COLOUR=65535 # Decimal colour value (65535 = white)
 COLOUR_ERROR_TOLERANCE=0 # Just in case your 'whites' aren't perfectly white
 WHITESPACE_BREAK_MODE=0 # 0 for 'end of image', 1 for 'any whitespace within image'
@@ -42,7 +44,16 @@ case $1 in
     shift # past argument=value
     ;;
     -e|--extension)
-    IMAGE_FILE_EXTENSION=$2
+    INPUT_IMAGE_FILE_EXTENSIONS=($2)
+	OUTPUT_IMAGE_FILE_EXTENSION=$2
+    shift # past argument=value
+    ;;
+	-ae|--additional-extension)
+    INPUT_IMAGE_FILE_EXTENSIONS+=($2)
+    shift # past argument=value
+    ;;
+	-oe|--output-extension)
+	OUTPUT_IMAGE_FILE_EXTENSION=$2
     shift # past argument=value
     ;;
     -o|--output-file-prefix)
@@ -73,6 +84,7 @@ case $1 in
     LOGGING_MODE=$2
     shift # past argument=value
     ;;
+
     --debug)
     LOGGING_MODE=1
     ;;
@@ -89,7 +101,16 @@ case $1 in
 	IM_IDENTIFY="magick identify"
 	IM_CONVERT="magick convert"
     ;;
-    -x)
+    -np|--no-prefix)
+	INPUT_IMAGE_NAME_PREFIX=""
+	;;
+	-oh|--output-here)
+	OUTPUT_DIRECTORY="./"
+	;;
+	-is|--include-subdirectory)
+	MAX_DIRECTORY_DEPTH=1000
+	;;
+	-x)
     CONFIRM_EXIT=1
     ;;
 esac
@@ -109,7 +130,7 @@ then
 	echo "OUTPUT_PAGE_NAME_PREFIX=$OUTPUT_PAGE_NAME_PREFIX"
 	echo "INPUT_DIRECTORY=$INPUT_DIRECTORY"
 	echo "OUTPUT_DIRECTORY=$OUTPUT_DIRECTORY"
-	echo "IMAGE_FILE_EXTENSION=$IMAGE_FILE_EXTENSION"
+	echo "INPUT_IMAGE_FILE_EXTENSIONS=$INPUT_IMAGE_FILE_EXTENSIONS"
 	echo "SPLIT_ON_COLOUR=$SPLIT_ON_COLOUR"
 	echo "COLOUR_ERROR_TOLERANCE=$COLOUR_ERROR_TOLERANCE"
 	echo "WHITESPACE_BREAK_MODE=$WHITESPACE_BREAK_MODE"
@@ -286,7 +307,7 @@ function combineImages {
 
 	while [ $imageIndex -lt $totalImageCount ]
 	do		
-		pageFileName=$(printf "$OUTPUT_PAGE_NAME_PREFIX%03d.$IMAGE_FILE_EXTENSION" $pageIndex)
+		pageFileName=$(printf "$OUTPUT_PAGE_NAME_PREFIX%03d.${INPUT_IMAGE_FILE_EXTENSIONS[2]}" $pageIndex)
 		
 		findBatchSizeForNextPage
 		
@@ -320,14 +341,22 @@ function combineImages {
 # find all files to be combined
 # allow using null-char for file name split (better array parsing) via: -print0 
 imageFileNames=()
-while IFS=  read -r -d $'\0'; do
-    imageFileNames+=("$REPLY")
-done < <(find $INPUT_DIRECTORY -type f -iname "$INPUT_IMAGE_NAME_PREFIX*.$IMAGE_FILE_EXTENSION" -print0)
+previousTotal=0
+printf "Checking for File matches:\n"
+for extension in ${INPUT_IMAGE_FILE_EXTENSIONS[@]}; do
+	printf "Pattern: $INPUT_IMAGE_NAME_PREFIX*.$extension\n"
+	while IFS=  read -r -d $'\0'; do
+    	imageFileNames+=("$REPLY")
+	done < <(find $INPUT_DIRECTORY -maxdepth $MAX_DIRECTORY_DEPTH -type f -iname "$INPUT_IMAGE_NAME_PREFIX*.$extension" -print0)
 # echo ${imageFileNames[*]};
+	difference=${#imageFileNames[@]}-$previousTotal
+	printf "Found: $((${#imageFileNames[@]}-$previousTotal))\n"
+	previousTotal=${#imageFileNames[@]}
+done
 
 if [ ${#imageFileNames[@]} -eq 0 ]; 
 then
-    echo "Couldn't find any images to combine";
+    printf "Couldn't find any images to combine\nSpecify -np if there is no file prefix or -e to specify a different file extension";
 else
 	start=$(date +%s)
 	mkdir -p $OUTPUT_DIRECTORY;
