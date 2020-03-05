@@ -19,6 +19,24 @@ The arguments for **comcom** are all optional, and if left unspecified they will
 **Default:** 5000  
 The minimum allowed pixel height per page.  When combining images, the script will not start looking for 'whitespace' until it has first hit this height requirement.
 
+### Minimum Input Image Width
+**Shorthand:** -mw [number]  
+**Longhand:** --min-image-width [number]  
+**Default:** 0  
+The minimum allowed pixel width for an input image. If this is set to non-0 value, resizes image if it is below this value while preserving aspect ratio. 
+
+### Maximum Input Image Width
+**Shorthand:** -Mw [number]  
+**Longhand:** --max-image-width [number]  
+**Default:** 0  
+The maximum allowed pixel width for an input image. If this is set to non-0 value, resizes image if it is above this value while preserving aspect ratio. 
+
+### Force Input Image Width
+**Shorthand:** -fw [number]  
+**Longhand:** --force-width [number]  
+**Default:** 0  
+This is the same as setting Manimum and Minimum Input Image Width to the same value. This will scale images up or down as necessary to match this width while preserving aspect ratio. 
+
 ### Input File Name Prefix
 **Shorthand:** -i [text]   
 **Longhand:** --input-file-prefix [text]  

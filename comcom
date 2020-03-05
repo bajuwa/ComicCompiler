@@ -8,6 +8,9 @@ INPUT_IMAGE_NAME_PREFIX="image"
 INPUT_IMAGE_FILE_EXTENSIONS=("jpg" "jpeg" "png")
 OUTPUT_IMAGE_FILE_EXTENSION="jpg"
 OUTPUT_PAGE_NAME_PREFIX="page"
+MERGE_FILE_TYPES=false
+MAX_WIDTH=0
+MIN_WIDTH=0
 INPUT_DIRECTORY="./"
 OUTPUT_DIRECTORY="./Compiled/" # Default to subdirectory to prevent potential for output files to be used as input if rerun
 SPLIT_ON_COLOUR=65535 # Decimal colour value (65535 = white)
@@ -29,6 +32,19 @@ do
 case $1 in
     -h|--min-height-per-page)
     MIN_HEIGHT_PER_PAGE=$2
+    shift # past argument=value
+    ;;
+	-mw|--min-image-width)
+    MIN_WIDTH=$2
+    shift # past argument=value
+    ;;
+	-Mw|--max-image-width)
+    MAX_WIDTH=$2
+    shift # past argument=value
+    ;;
+	-fw|--force-width)
+    MIN_WIDTH=$2
+	MAX_WIDTH=$2
     shift # past argument=value
     ;;
     -i|--input-file-prefix)
@@ -254,9 +270,30 @@ function cropFromTopAndBottom {
 	cropSampleRange=$currentImageWidth"x"$pageCroppedHeight"+0+"$pixelToCropFromTop
 	[ $LOGGING_MODE -ge 1 ] && echo "Cropping: $fileToCrop[$cropSampleRange]";
 	$IM_CONVERT -crop $cropSampleRange $fileToCrop $fileToCrop
-	
 	return
 };
+
+function resizeImages{
+	if [$MIN_WIDTH -ne 0 || $MAX_WIDTH -ne 0]; then
+		for imageIndex in ${!imageFileNames[@]}; do
+			image=${imageFileNames[$imageIndex]}
+			currentImageWidth=$($IM_IDENTIFY -format "%w" $image)	
+			currentImageHeight=$($IM_IDENTIFY -format "%h" $image)	
+			if [$MIN_WIDTH -gt $currentImageWidth]; then
+				renamedImage="$image_resized"
+				cp $image $renamedImage
+				IM_CONVERT -resize "$MIN_WIDTHx$currentImageHeight<" $renamedImage
+				{imageFileNames[$imageIndex]}=$renamedImage
+			elif [$MIN_WIDTH -lt $currentImageWidth]; then
+				renamedImage="$image_resized"
+				cp $image $renamedImage
+				IM_CONVERT -resize "$MAX_WIDTHx$currentImageHeight>" $renamedImage
+				{imageFileNames[$imageIndex]}=$renamedImage
+			fi
+		done
+	fi
+}
+
 
 function findBatchSizeForNextPage {
 	[ $LOGGING_MODE -ge 1 ] && echo "Finding batch size for $pageFileName starting at $imageIndex";
@@ -307,12 +344,12 @@ function combineImages {
 
 	while [ $imageIndex -lt $totalImageCount ]
 	do		
-		pageFileName=$(printf "$OUTPUT_PAGE_NAME_PREFIX%03d.${INPUT_IMAGE_FILE_EXTENSIONS[2]}" $pageIndex)
+		pageFileName=$(printf "$OUTPUT_PAGE_NAME_PREFIX%03d.${OUTPUT_IMAGE}" $pageIndex)
 		
 		findBatchSizeForNextPage
 		
 		# Now that we've picked out our image range, combine them to a single file
-		echo "Combining "$((imageBatchSize+1))" images into '$pageFileName': $imageIndex - $((imageIndex+imageBatchSize))"
+		echo "Combining "$((imageBatchSize+1))" images into '$pageFileName': $imageIndex - $((imageIndex+imageBatchSize))" 
 		$IM_CONVERT -append ${imageFileNames[@]:$imageIndex:$imageBatchSize+1} -colorspace sRGB $OUTPUT_DIRECTORY$pageFileName;
 		
 		# If we have cropFromBottom/cropFromTop, then perform crop on recently created page
@@ -347,9 +384,8 @@ for extension in ${INPUT_IMAGE_FILE_EXTENSIONS[@]}; do
 	printf "Pattern: $INPUT_IMAGE_NAME_PREFIX*.$extension\n"
 	while IFS=  read -r -d $'\0'; do
     	imageFileNames+=("$REPLY")
-	done < <(find $INPUT_DIRECTORY -maxdepth $MAX_DIRECTORY_DEPTH -type f -iname "$INPUT_IMAGE_NAME_PREFIX*.$extension" -print0)
+	done < <(find $INPUT_DIRECTORY -maxdepth $MAX_DIRECTORY_DEPTH -type f -iname "$OUTPUT_IMAGE_FILE_EXTENSION*.$extension" -print0)
 # echo ${imageFileNames[*]};
-	difference=${#imageFileNames[@]}-$previousTotal
 	printf "Found: $((${#imageFileNames[@]}-$previousTotal))\n"
 	previousTotal=${#imageFileNames[@]}
 done
@@ -360,6 +396,7 @@ then
 else
 	start=$(date +%s)
 	mkdir -p $OUTPUT_DIRECTORY;
+	resizeImages
     combineImages;
 	end=$(date +%s)
 	totalTime=$(($end-$start))
