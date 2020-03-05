@@ -273,7 +273,7 @@ function cropFromTopAndBottom {
 	return
 };
 
-function resizeImages{
+function resizeImages {
 	if [$MIN_WIDTH -ne 0 || $MAX_WIDTH -ne 0]; then
 		for imageIndex in ${!imageFileNames[@]}; do
 			image=${imageFileNames[$imageIndex]}
@@ -292,7 +292,7 @@ function resizeImages{
 			fi
 		done
 	fi
-}
+};
 
 
 function findBatchSizeForNextPage {
