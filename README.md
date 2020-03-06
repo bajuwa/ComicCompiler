@@ -23,19 +23,19 @@ The minimum allowed pixel height per page.  When combining images, the script wi
 **Shorthand:** -mw [number]  
 **Longhand:** --min-image-width [number]  
 **Default:** 0  
-The minimum allowed pixel width for an input image. If this is set to non-0 value, resizes image if it is below this value while preserving aspect ratio. 
+The minimum allowed pixel width for an input image. If this is set to non-0 value, resizes image if it is below this value while preserving aspect ratio. Slows processing due to need to anaylsis each image.
 
 ### Maximum Input Image Width
 **Shorthand:** -Mw [number]  
 **Longhand:** --max-image-width [number]  
 **Default:** 0  
-The maximum allowed pixel width for an input image. If this is set to non-0 value, resizes image if it is above this value while preserving aspect ratio. 
+The maximum allowed pixel width for an input image. If this is set to non-0 value, resizes image if it is above this value while preserving aspect ratio. Slows processing due to need to anaylsis each image.
 
 ### Force Input Image Width
 **Shorthand:** -fw [number]  
 **Longhand:** --force-width [number]  
 **Default:** 0  
-This is the same as setting Manimum and Minimum Input Image Width to the same value. This will scale images up or down as necessary to match this width while preserving aspect ratio. 
+This is the same as setting Manimum and Minimum Input Image Width to the same value. This will scale images up or down as necessary to match this width while preserving aspect ratio. Slows processing due to need to anaylsis each image.
 
 ### Input File Name Prefix
 **Shorthand:** -i [text]   
@@ -69,9 +69,9 @@ The adds another file extension of your input images. This value is also include
 ### Output File Extension
 **Shorthand:** -oe [text]   
 **Longhand:** --output-extension [text]   
-**Default:** ".jpg" or value of -e if specified  
+**Default:** ".png" or value of -e if specified  
 The file extension of your output images and your output page files.  
-**Example:** if a directory contains image001.jpg image002.jpg and image003.png, and you run `comcom -oe png`, the compiled images will be page000.png instead of page000.jpg.  
+**Example:** if a directory contains image001.jpg image002.jpg and image003.png, and you run `comcom -oe jpg`, the compiled images will be page000.jpg instead of page000.png.  
 
 ### Output Page File Prefix
 **Shorthand:** -o [text]   

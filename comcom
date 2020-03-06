@@ -6,7 +6,7 @@ MIN_HEIGHT_PER_PAGE=5000
 MAX_DIRECTORY_DEPTH=1
 INPUT_IMAGE_NAME_PREFIX="image"
 INPUT_IMAGE_FILE_EXTENSIONS=("jpg" "jpeg" "png")
-OUTPUT_IMAGE_FILE_EXTENSION="jpg"
+OUTPUT_IMAGE_FILE_EXTENSION="png"
 OUTPUT_PAGE_NAME_PREFIX="page"
 MERGE_FILE_TYPES=false
 MAX_WIDTH=0
@@ -274,21 +274,26 @@ function cropFromTopAndBottom {
 };
 
 function resizeImages {
-	if [$MIN_WIDTH -ne 0 || $MAX_WIDTH -ne 0]; then
+	if [[ $MIN_WIDTH -gt 0 || $MAX_WIDTH -gt 0 ]]; then
 		for imageIndex in ${!imageFileNames[@]}; do
 			image=${imageFileNames[$imageIndex]}
 			currentImageWidth=$($IM_IDENTIFY -format "%w" $image)	
 			currentImageHeight=$($IM_IDENTIFY -format "%h" $image)	
-			if [$MIN_WIDTH -gt $currentImageWidth]; then
-				renamedImage="$image_resized"
-				cp $image $renamedImage
-				IM_CONVERT -resize "$MIN_WIDTHx$currentImageHeight<" $renamedImage
-				{imageFileNames[$imageIndex]}=$renamedImage
-			elif [$MIN_WIDTH -lt $currentImageWidth]; then
-				renamedImage="$image_resized"
-				cp $image $renamedImage
-				IM_CONVERT -resize "$MAX_WIDTHx$currentImageHeight>" $renamedImage
-				{imageFileNames[$imageIndex]}=$renamedImage
+			if [[ $MIN_WIDTH -gt $currentImageWidth || $MAX_WIDTH -lt $currentImageWidth ]]; then
+				mkdir -p "resized"
+				for inputExtension in ${INPUT_IMAGE_FILE_EXTENSIONS[@]}; do 
+					if [[ $image = *$inputExtension ]]; then
+						imageName=${image%.*}
+						extension=$inputExtension
+					fi
+				done
+				renamedImage="resized/${imageName}_resized.$extension"
+				if [[ $MIN_WIDTH -gt $currentImageWidth ]]; then
+					$IM_CONVERT $image -resize "$MIN_WIDTHx$currentImageHeight<" $renamedImage
+				elif [[ $MAX_WIDTH -lt $currentImageWidth ]]; then
+					$IM_CONVERT $image -resize "$MAX_WIDTH" $renamedImage
+				fi
+				imageFileNames[$imageIndex]=$renamedImage
 			fi
 		done
 	fi
@@ -344,8 +349,8 @@ function combineImages {
 
 	while [ $imageIndex -lt $totalImageCount ]
 	do		
-		pageFileName=$(printf "$OUTPUT_PAGE_NAME_PREFIX%03d.${OUTPUT_IMAGE}" $pageIndex)
-		
+		pageFileName=$(printf "$OUTPUT_PAGE_NAME_PREFIX%03d.${OUTPUT_IMAGE_FILE_EXTENSION}" $pageIndex)
+	
 		findBatchSizeForNextPage
 		
 		# Now that we've picked out our image range, combine them to a single file
@@ -384,7 +389,7 @@ for extension in ${INPUT_IMAGE_FILE_EXTENSIONS[@]}; do
 	printf "Pattern: $INPUT_IMAGE_NAME_PREFIX*.$extension\n"
 	while IFS=  read -r -d $'\0'; do
     	imageFileNames+=("$REPLY")
-	done < <(find $INPUT_DIRECTORY -maxdepth $MAX_DIRECTORY_DEPTH -type f -iname "$OUTPUT_IMAGE_FILE_EXTENSION*.$extension" -print0)
+	done < <(find $INPUT_DIRECTORY -maxdepth $MAX_DIRECTORY_DEPTH -type f -iname "$INPUT_IMAGE_NAME_PREFIX*.$extension" -print0)
 # echo ${imageFileNames[*]};
 	printf "Found: $((${#imageFileNames[@]}-$previousTotal))\n"
 	previousTotal=${#imageFileNames[@]}
