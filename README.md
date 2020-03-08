@@ -55,8 +55,8 @@ This will include images in subdirectories.
 ### Output Directory
 **Shorthand:** -od [text]   
 **Longhand:** --output-directory [text]   
-**Default:** "./"  
-The path to the directory you want to put the new page files in. By default it's set to "./" which refers to your **current working directory**, aka the location you're in when you run the script.
+**Default:** "./Compiled/"  
+The path to the directory you want to put the new page files in. By default it's set to "./Compiled/" which will create a new folder called 'Compiled' in your **current working directory**, aka the location you're in when you run the script, and put your generated pages in that folder.
 
 ### Whitespace Break Mode
 **Shorthand:** -m [number]   
