@@ -17,7 +17,7 @@ The arguments for **comcom** are all optional, and if left unspecified they will
 **Shorthand:** -h [number]  
 **Longhand:** --min-height-per-page [number]  
 **Default:** 5000  
-The minimum allowed pixel height per page.  When combining images, the script will not start looking for 'whitespace' until it has first hit this height requirement.
+The minimum allowed pixel height per page.  When combining images, the script will not start looking for a breakpoint until it has first hit this height requirement.
 
 ### Input File Name Prefix
 **Shorthand:** -i [text]   
@@ -58,34 +58,34 @@ This will include images in subdirectories.
 **Default:** "./Compiled/"  
 The path to the directory you want to put the new page files in. By default it's set to "./Compiled/" which will create a new folder called 'Compiled' in your **current working directory**, aka the location you're in when you run the script, and put your generated pages in that folder.
 
-### Whitespace Break Mode
+### Breakpoint Detection Mode
 **Shorthand:** -m [number]   
-**Longhand:** --whitespace-break-mode [number]   
+**Longhand:** --breakpoint-detection-mode [number]   
 **Default:** 0  
-The "mode" that the script uses to detect where to split up pages. In general, the script will continue to combine images until it  reaches your specified **Minimum Page Height** requirement. After that requirement is hit, it will then start looking for *whitespace* to break on. This mode setting controls how the script tries to find these break points.   
-**Mode 0:** This is the simplest mode and runs the fastest. It will try to break pages when it adds an image that *ends in a single line of whitespace*. This means that if your series of images often split panels across images, you will likely generate randomly long page files.  If that's the case, then use mode 1 instead.   
+The "mode" that the script uses to detect where to split up pages. In general, the script will continue to combine images until it  reaches your specified **Minimum Page Height** requirement. After that requirement is hit, it will then start looking for breakpoints. This mode setting controls how the script tries to find these breakpoints.   
+**Mode 0:** This is the simplest mode and runs the fastest. It will try to break pages when it adds an image that *ends in a single line of the breakpoint colour*. This means that if your series of images often split panels across images, you will likely generate randomly long page files.  If that's the case, then use mode 1 instead.   
 **Mode 1:** This is a more complex algorithm that could take a bit longer as it may need to search the entire image for a breakpoint instead of just the last line of the file.  While this mode takes longer, it often produces more consistent page sizes as it can better handle long unbroken panels or images that don't neatly cut between panels.   
 
-### Break Point Row Check Increments
+### Breakpoint Row Check Increments
 **Shorthand:** -bi [text]   
 **Longhand:** --break-points-increment [number]   
 **Default:** 10  
-When in **Whitespace Break Mode #1** this value controls how often the script tests a line in an image file for whitespace. Increasing this value will make the script run faster, but may cause smaller whitespace gaps to be missed when trying to split.  Reducing the value will do the opposite: script runs slower but will more reliably detect smaller whitespace gaps between panels.   
-**Example:** When running `comcom -m 1 -bi 10` the script will check row 0 for whitespace, then row 10, then row 20, until it either finds whitespace or reaches the end of the file.
+When in **Breakpoint Detection Mode #1** this value controls how often the script tests a line in an image file for a breakpoint. Increasing this value will make the script run faster, but may cause smaller gaps to be missed when trying to split.  Reducing the value will do the opposite: script runs slower but will more reliably detect smaller gaps between panels.   
+**Example:** When running `comcom -m 1 -bi 10` the script will check row 0 for a breakpoint, then row 10, then row 20, until it either finds a breakpoint or reaches the end of the file.
 
-### Break Point Row Check Multiplier
+### Breakpoint Row Check Multiplier
 **Shorthand:** -bm [text]   
 **Longhand:** --break-points-multiplier [number]   
 **Default:** 20  
-When in **Whitespace Break Mode #1** this value controls how large of a vertical area is pre-tested for *whitespace* before iterating over rows via **Break Point Row Check Increments**.   
-**Example:** When running `comcom -m 1 -bi 10 -bm 20` this script will first check a vertical strip down the center of the image that's 200 pixels tall (where bi of 10 times bm of 20 equals 200). If this 200 pixel space doesn't contain any *whitespace* then the script will skip that area and check the next area of 200 pixels. This value can help reduce the number of horizontal rows tested which will reduce script run time.     
+When in **Breakpoint Detection Mode #1** this value controls how large of a vertical area is pre-tested for a breakpoint before iterating over rows via **Breakpoint Row Check Increments**.   
+**Example:** When running `comcom -m 1 -bi 10 -bm 20` this script will first check a vertical strip down the center of the image that's 200 pixels tall (where bi of 10 times bm of 20 equals 200). If this 200 pixel space doesn't contain any breakpoints then the script will skip that area and check the next area of 200 pixels. This value can help reduce the number of horizontal rows tested which will reduce script run time.     
 **Note:** When increasing/decreasing the **Check Increments** value, consider decreasing/increasing the **Check Multiplier** such that you stay in a range close to 200-300 pixels, otherwise you may lose performance benefits.
 
 ### Split Pages on Colour
 **Shorthand:** -c [number]   
 **Longhand:** --split-on-colour [number]   
 **Default:** 65535 (white)  
-The decimal notation of the colour you want to split on.  Use 65535 for white (which is the default) or 0 for black. For this set of documentation any reference to *whitespace* will actually refer to the colour specified here, not necessarily 'white'.
+The decimal notation of the colour you want to split on.  Use 65535 for white (which is the default), 0 for black, or any number in that range for your intended colour.
 
 ### Colour Split Error Tolerance
 **Shorthand:** -ce [number]   
