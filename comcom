@@ -7,6 +7,7 @@ INPUT_IMAGE_NAME_PREFIX="image"
 IMAGE_FILE_EXTENSION="jpg"
 OUTPUT_PAGE_NAME_PREFIX="page"
 INPUT_DIRECTORY="./"
+MAX_DIRECTORY_DEPTH=1
 OUTPUT_DIRECTORY="./"
 SPLIT_ON_COLOUR=65535 # Decimal colour value (65535 = white)
 COLOUR_ERROR_TOLERANCE=0 # Just in case your 'whites' aren't perfectly white
@@ -53,6 +54,9 @@ case $1 in
     INPUT_DIRECTORY=$2
     shift # past argument=value
     ;;
+	-is|--include-sub-directories)
+	MAX_DIRECTORY_DEPTH=1000
+	;;
     -od|--output-directory)
     OUTPUT_DIRECTORY=$2
     shift # past argument=value
@@ -329,7 +333,7 @@ function combineImages {
 imageFileNames=()
 while IFS=  read -r -d $'\0'; do
     imageFileNames+=("$REPLY")
-done < <(find $INPUT_DIRECTORY -type f -iname "$INPUT_IMAGE_NAME_PREFIX*.$IMAGE_FILE_EXTENSION" -print0)
+done < <(find $INPUT_DIRECTORY -maxdepth $MAX_DIRECTORY_DEPTH -type f -iname "$INPUT_IMAGE_NAME_PREFIX*.$IMAGE_FILE_EXTENSION" -print0)
 # echo ${imageFileNames[*]};
 
 if [ ${#imageFileNames[@]} -eq 0 ]; 
