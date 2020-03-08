@@ -45,6 +45,13 @@ The text that will go at the start of each output page name. The prefix is follo
 **Default:** "./"  
 The path to the directory you want to collect image files from. By default it's set to "./" which refers to your **current working directory**, aka the location you're in when you run the script.
 
+### Include subDirectory
+**Shorthand:** -is   
+**Longhand:** --include-subDirectory   
+**Default:** false  
+This will include images in subfolders.   
+**Example:** If there is ./chapter1/image1/image01.jpg and ./chapter1/image2/image02.jpg and you're using the input directory ./chapter1 then, by default, neither image will be found. Enabling this will include both images assuming they match the prefix pattern and file extensions. 
+
 ### Output Directory
 **Shorthand:** -od [text]   
 **Longhand:** --output-directory [text]   
