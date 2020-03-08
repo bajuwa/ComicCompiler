@@ -4,9 +4,6 @@
 // @version      0.1
 // @description  Downloads all images already loaded in to the page with a specific partial-source match
 // @author       bajuwa
-// @match        *kuaikanmanhua.com/web/comic/*
-// @match        *pufeimanhua.com/chapter/*
-// @match        *ac.qq.com/ComicView*
 // @grant        GM_download
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -17,7 +14,7 @@ var FILE_NAME_PREFIX = GM_getValue("MANDL_FILE_NAME_PREFIX", "image");
 var FILE_EXTENSION = GM_getValue("MANDL_FILE_EXTENSION", ".jpg");
 var NUM_OF_IMAGES_TO_SKIP = GM_getValue("MANDL_NUM_OF_IMAGES_TO_SKIP", 0);
 var DOWNLOAD_ITERATION_DELAY = GM_getValue("MANDL_DOWNLOAD_ITERATION_DELAY", 200);
-var AUTOSCROLL_PIXELS_TO_BOTTOM = GM_getValue("MANDL_AUTOSCROLL_PIXELS_TO_BOTTOM", 1000);
+var AUTOSCROLL_PIXELS = GM_getValue("MANDL_AUTOSCROLL_PIXELS", 1000);
 var AUTOSCROLL_MS_INTERVAL = GM_getValue("MANDL_AUTOSCROLL_MS_INTERVAL", 200);
 
 var ELEMENT_ID_CONFIG_PANEL = "manDlConfigPanel";
@@ -57,7 +54,7 @@ function setupConfigPanel() {
     addConfigOptions(configTable, "File Extension:", FILE_EXTENSION, value => {FILE_EXTENSION = value; GM_setValue("MANDL_FILE_EXTENSION", value)});
     addConfigOptions(configTable, "Skip First N Pages:", NUM_OF_IMAGES_TO_SKIP, value => {NUM_OF_IMAGES_TO_SKIP = value; GM_setValue("MANDL_NUM_OF_IMAGES_TO_SKIP", value)});
     addConfigOptions(configTable, "MS between file DLs:", DOWNLOAD_ITERATION_DELAY, value => {DOWNLOAD_ITERATION_DELAY = value; GM_setValue("MANDL_DOWNLOAD_ITERATION_DELAY", value)});
-    addConfigOptions(configTable, "Scroll Pixels 2 Bottom:", AUTOSCROLL_PIXELS_TO_BOTTOM, value => {AUTOSCROLL_PIXELS_TO_BOTTOM = value; GM_setValue("MANDL_AUTOSCROLL_PIXELS_TO_BOTTOM", value)});
+    addConfigOptions(configTable, "Scroll Pixels:", AUTOSCROLL_PIXELS, value => {AUTOSCROLL_PIXELS = value; GM_setValue("MANDL_AUTOSCROLL_PIXELS", value)});
     addConfigOptions(configTable, "Scroll MS Delay:", AUTOSCROLL_MS_INTERVAL, value => {AUTOSCROLL_MS_INTERVAL = value; GM_setValue("MANDL_AUTOSCROLL_MS_INTERVAL", value)});
 
     // Create a button to trigger automatic scroll to bottom of page (for lazy loaded images)
@@ -88,10 +85,10 @@ function addConfigOptions(parentElement, optionTitle, defaultValue, consumer) {
 
 function scrollToBottom() {
     console.log("Scroll with configurations...");
-    console.log("AutoScroll pixels to bottom: " + AUTOSCROLL_PIXELS_TO_BOTTOM);
+    console.log("AutoScroll pixels: " + AUTOSCROLL_PIXELS);
     console.log("AutoScroll MS interval: " + AUTOSCROLL_MS_INTERVAL);
     var interval = setInterval( function(){
-            window.scroll({top: document.body.offsetHeight - AUTOSCROLL_PIXELS_TO_BOTTOM, behaviour: 'smooth'});
+            window.scrollBy(0, AUTOSCROLL_PIXELS);
     }, AUTOSCROLL_MS_INTERVAL);
 }
 
@@ -122,9 +119,9 @@ function findImagesFromSource(sourceHref) {
     if (sourceHref.includes("pufeimanhua")) {
         return $("img.comicimg");
     } else if (sourceHref.includes("kuaikanmanhua")) {
-        return $("img[src*=kkmh.com/image]");
+        return $(".comicDetails img[src*=\"kkmh.com/image\"]");
     } else if (sourceHref.includes("ac.qq")) {
-        return $("img[src*=manhua_detail]");
+        return $("img[src*=\"manhua_detail\"]");
     } else {
         console.log("WARNING: Could not determine appropriate scraping criteria, downloading all images");
         return $("img[src^=jpg]");
