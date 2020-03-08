@@ -9,9 +9,9 @@ OUTPUT_PAGE_NAME_PREFIX="page"
 INPUT_DIRECTORY="./"
 MAX_DIRECTORY_DEPTH=1
 OUTPUT_DIRECTORY="./Compiled/"
-SPLIT_ON_COLOUR=65535 # Decimal colour value (65535 = white)
-COLOUR_ERROR_TOLERANCE=0 # Just in case your 'whites' aren't perfectly white
-WHITESPACE_BREAK_MODE=0 # 0 for 'end of image', 1 for 'any whitespace within image'
+SPLIT_ON_COLOUR=65535
+COLOUR_ERROR_TOLERANCE=0
+BREAKPOINT_DETECTION_MODE=0
 BREAK_POINT_ROW_CHECK_INCREMENTS=10
 BREAK_POINT_ROW_CHECK_BATCH_MULTIPLIER=20
 LOGGING_MODE=0 # 0 for normal, 1 for debug, 2 for verbose
@@ -61,8 +61,8 @@ case $1 in
     OUTPUT_DIRECTORY=$2
     shift # past argument=value
     ;;
-    -m|--whitespace-break-mode)
-    WHITESPACE_BREAK_MODE=$2
+    -m|--breakpoint-detection-mode)
+    BREAKPOINT_DETECTION_MODE=$2
     shift # past argument=value
     ;;
     -bi|--break-points-increment)
@@ -116,7 +116,7 @@ then
 	echo "IMAGE_FILE_EXTENSION=$IMAGE_FILE_EXTENSION"
 	echo "SPLIT_ON_COLOUR=$SPLIT_ON_COLOUR"
 	echo "COLOUR_ERROR_TOLERANCE=$COLOUR_ERROR_TOLERANCE"
-	echo "WHITESPACE_BREAK_MODE=$WHITESPACE_BREAK_MODE"
+	echo "BREAKPOINT_DETECTION_MODE=$BREAKPOINT_DETECTION_MODE"
 	echo "BREAK_POINT_ROW_CHECK_INCREMENTS=$BREAK_POINT_ROW_CHECK_INCREMENTS"
 	echo "BREAK_POINT_ROW_CHECK_BATCH_MULTIPLIER=$BREAK_POINT_ROW_CHECK_BATCH_MULTIPLIER"
 	echo ""
@@ -134,10 +134,10 @@ function fileEndsInBreakPoint {
 	colourDifference=$((${grayMeanValue%.*} - $SPLIT_ON_COLOUR))
 	if [ ${colourDifference#-} -le $COLOUR_ERROR_TOLERANCE ] && [ ${standardDeviation%.*} -lt 1 ]
 	then 
-		[ $LOGGING_MODE -ge 1 ] && echo "This image ends in whitespace: " $currentImageFileName;
+		[ $LOGGING_MODE -ge 1 ] && echo "This image ends in a breakpoint: " $currentImageFileName;
 		true
 	else 
-		[ $LOGGING_MODE -ge 2 ] && echo "This image does not end in whitespace: " $currentImageFileName;
+		[ $LOGGING_MODE -ge 2 ] && echo "This image does not end in a breakpoint: " $currentImageFileName;
 		false
 	fi
 };
@@ -180,7 +180,7 @@ function findBreakPoint {
 				then 
 					cropFromBottom=$((currentImageHeight-i-1))
 					cropFromTopNextPage=$i
-					[ $LOGGING_MODE -ge 1 ] && echo "Found whitespace breakpoint in: "$currentImageFileName
+					[ $LOGGING_MODE -ge 1 ] && echo "Found a breakpoint in: "$currentImageFileName
 					[ $LOGGING_MODE -ge 2 ] && echo "cropFromBottom: "$cropFromBottom
 					[ $LOGGING_MODE -ge 2 ] && echo "cropFromTopNextPage: "$cropFromTopNextPage
 					return 0
@@ -196,7 +196,7 @@ function findBreakPoint {
 	# If we couldn't find a breakpoint, then return 0's
 	cropFromBottom=0
 	cropFromTopNextPage=0
-	[ $LOGGING_MODE -ge 2 ] && echo "Could not find whitespace breakpoint in: "$currentImageFileName
+	[ $LOGGING_MODE -ge 2 ] && echo "Could not find a breakpoint in: "$currentImageFileName
 	return 1
 };
 
@@ -247,7 +247,7 @@ function findBatchSizeForNextPage {
 	imageBatchSize=0;
 	
 	cumulativePageHeight=0;
-	# find the next page separation spot (test for line of whitespace)
+	# find the next page separation spot (test for breakpoint line)
 	while [ $imageBatchSize -lt $((totalImageCount-imageIndex)) ]
 	do
 		printf "."
@@ -259,13 +259,13 @@ function findBatchSizeForNextPage {
 		[ $LOGGING_MODE -ge 2 ] && echo "Current image dimensions (WxH): $currentImageWidth x $currentImageHeight";
 		
 		# Check if totalHeight + thisImagesHeight > minRequiredHeight
-		# If so, start looking for whitespace at the minRequiredHeight - totalHeight
+		# If so, start looking for a breakpoint at the minRequiredHeight - totalHeight
 		# Add next images height to the overall height
-		# If whitespace found, store cropFromBottom + cropFromTop for later and break loop
+		# If a breakpoint found, store cropFromBottom + cropFromTop for later and break loop
 		if [ $cumulativePageHeight -ge $MIN_HEIGHT_PER_PAGE ] && [ $imageIndexToTest -lt $((totalImageCount-1)) ]
 		then
 			[ $LOGGING_MODE -ge 1 ] && echo "Reached min page height $MIN_HEIGHT_PER_PAGE, checking for breakpoint in $currentImageFileName";
-			if [ $WHITESPACE_BREAK_MODE -eq 1 ] 
+			if [ $BREAKPOINT_DETECTION_MODE -eq 1 ]
 			then
 				printf "\r%b" "\033[2K" "Searching for breakpoint in '$currentImageFileName'"
 				if findBreakPoint 
