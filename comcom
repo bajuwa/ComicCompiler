@@ -8,7 +8,7 @@ IMAGE_FILE_EXTENSION="jpg"
 OUTPUT_PAGE_NAME_PREFIX="page"
 INPUT_DIRECTORY="./"
 MAX_DIRECTORY_DEPTH=1
-OUTPUT_DIRECTORY="./"
+OUTPUT_DIRECTORY="./Compiled/"
 SPLIT_ON_COLOUR=65535 # Decimal colour value (65535 = white)
 COLOUR_ERROR_TOLERANCE=0 # Just in case your 'whites' aren't perfectly white
 WHITESPACE_BREAK_MODE=0 # 0 for 'end of image', 1 for 'any whitespace within image'
