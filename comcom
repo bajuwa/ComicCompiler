@@ -147,6 +147,7 @@ function findBreakPoint {
 	rowBeingChecked=0;
 	while [ $rowBeingChecked -lt $currentImageHeight ]
 	do
+		printf "."
 		batchStart=$rowBeingChecked
 		batchEnd=$((rowBeingChecked + outerBatchSize))
 		batchEnd=$(( batchEnd >= currentImageHeight ? currentImageHeight-1 : batchEnd ))
@@ -245,6 +246,7 @@ function findBatchSizeForNextPage {
 	# find the next page separation spot (test for line of whitespace)
 	while [ $imageBatchSize -lt $((totalImageCount-imageIndex)) ]
 	do
+		printf "."
 		imageIndexToTest=$((imageIndex+imageBatchSize))
 		currentImageFileName=${imageFileNames[$imageIndexToTest]}
 		
@@ -261,6 +263,7 @@ function findBatchSizeForNextPage {
 			[ $LOGGING_MODE -ge 1 ] && echo "Reached min page height $MIN_HEIGHT_PER_PAGE, checking for breakpoint in $currentImageFileName";
 			if [ $WHITESPACE_BREAK_MODE -eq 1 ] 
 			then
+				printf "\r%b" "\033[2K" "Searching for breakpoint in '$currentImageFileName'"
 				if findBreakPoint 
 				then
 					break
@@ -288,11 +291,15 @@ function combineImages {
 	do		
 		pageFileName=$(printf "$OUTPUT_PAGE_NAME_PREFIX%03d.$IMAGE_FILE_EXTENSION" $pageIndex)
 		
+		printf "Finding images to combine into '$pageFileName'"
+		
 		findBatchSizeForNextPage
 		
 		# Now that we've picked out our image range, combine them to a single file
-		echo "Combining "$((imageBatchSize+1))" images into '$pageFileName': $imageIndex - $((imageIndex+imageBatchSize))"
 		$IM_CONVERT -append ${imageFileNames[@]:$imageIndex:$imageBatchSize+1} -colorspace sRGB $OUTPUT_DIRECTORY$pageFileName;
+		imagesCombined=$((imageBatchSize+1))
+		imagesCombined=$(printf %2s $imagesCombined)
+		printf "\r%b" "\033[2K" "Combined $imagesCombined images into '$pageFileName': $imageIndex - $((imageIndex+imageBatchSize))\n"
 		
 		# If we have cropFromBottom/cropFromTop, then perform crop on recently created page
 		if [ $((cropFromBottom+cropFromTop)) -gt 0 ]
@@ -329,12 +336,12 @@ if [ ${#imageFileNames[@]} -eq 0 ];
 then
     echo "Couldn't find any images to combine";
 else
+	echo "Starting compilation..."
 	start=$(date +%s)
 	mkdir -p $OUTPUT_DIRECTORY;
     combineImages;
 	end=$(date +%s)
 	totalTime=$(($end-$start))
-	echo ""
 	echo "Comic Compilation - Complete! (time: "$totalTime"s)"
 fi
 
