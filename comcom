@@ -54,7 +54,7 @@ case $1 in
     INPUT_DIRECTORY=$2
     shift # past argument=value
     ;;
-	-is|--include-subdirectory)
+	-is|--include-sub-directories)
 	MAX_DIRECTORY_DEPTH=1000
 	;;
     -od|--output-directory)
