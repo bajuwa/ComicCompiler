@@ -1,6 +1,9 @@
 # ComicCompiler
 Given a set of images, vertically combines them in to 'pages' where the start/end of the page are solid white (or some other specified colour).
 
+A small demo can be seen here, or you can [view all demos](https://github.com/bajuwa/ComicCompiler/blob/master/demos/):   
+![ComCom demo](https://github.com/bajuwa/ComicCompiler/blob/master/demos/simple.gif)
+
 ## Installation
 1. Make sure you can run shell scripts. 
      1. If you're on Windows then you'll need to download an sh.exe file and put it on your PATH, or use a command line terminal replacement like Git Bash (https://git-scm.com/downloads)
@@ -20,9 +23,6 @@ Given a set of images, vertically combines them in to 'pages' where the start/en
 4. At this point, you'll see information printed to your screen.  If all goes well you should see something like `Starting compilation...`.
 5. Once the script is done, it will say something like `Compilation Complete` and will stop.  You can then open up the new `./Compiled/` folder in your current directory and see the pages that were generated.
       1. If the pages don't look as you want them, then you'll have to add arguments to adjust the behaviour.  Below in are some common examples, but you can see a complete list in the [Command Line Arguments](#command-line-arguments) section.
-
-A small demo can be seen here, or you can [view all demos](https://github.com/bajuwa/ComicCompiler/blob/master/demos/):   
-![ComCom demo](https://github.com/bajuwa/ComicCompiler/blob/master/demos/simple.gif)
 
 #### Common Problems       
 - Page heights are inconsistent   
