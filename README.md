@@ -3,16 +3,15 @@ Given a set of images, vertically combines them in to 'pages' where the start/en
 
 ## Installation
 1. Make sure you can run shell scripts. 
-     1. If you're on Windows then you'll need to download the bash or sh executables, or use a command line terminal replacement like Git Bash.     
-     2. The remainder of this tutorial uses Git Bash (https://git-scm.com/downloads) that you can use instead of the default command line terminal
-2. Install ImageMagick: https://imagemagick.org/script/download.php
+     1. If you're on Windows then you'll need to download an sh.exe file and put it on your PATH, or use a command line terminal replacement like Git Bash (https://git-scm.com/downloads)
+2. Install ImageMagick (Version 6 or 7): https://imagemagick.org/script/download.php
      1. When installing, an option to 'add to path' should already be selected for you. This is required so don't uncheck it!
 3. Download the **comcom** file to any location you want, but make sure to add that location to your PATH
   
 ## Tutorial 
 #### Running ComCom
 1. To get started, make sure all your image files are in a single folder on your computer.
-      1. For this example, we'll assume your images are all named something like `image001.jpg`.  If this isn't the case, see the **Common Problems** section.
+      1. For this example, we'll assume your images are all named something like `image001.jpg`.  If this isn't the case, see the [Common Problems](#common-problems) section.
 2. Open up that folder in your command line.
 3. Run the main `comcom` command (no additional arguments necessary)
       1. If you're running Git Bash and the 'comcom' script is on your path, `comcom` should be enough.
@@ -20,7 +19,7 @@ Given a set of images, vertically combines them in to 'pages' where the start/en
       `sh.exe comcom` or, if sh.exe isn't on your path, `"C:\Program Files\Git\bin\sh.exe" comcom`  
 4. At this point, you'll see information printed to your screen.  If all goes well you should see something like `Starting compilation...`.
 5. Once the script is done, it will say something like `Compilation Complete` and will stop.  You can then open up the new `./Compiled/` folder in your current directory and see the pages that were generated.
-      1. If the pages don't look as you want them, then you'll have to add arguments to adjust the behaviour.  Below in are some common examples, but you can see a complete list in the **Command Line Arguments** section.
+      1. If the pages don't look as you want them, then you'll have to add arguments to adjust the behaviour.  Below in are some common examples, but you can see a complete list in the [Command Line Arguments](#command-line-arguments) section.
 
 A small demo can be seen here, or you can [view all demos](https://github.com/bajuwa/ComicCompiler/blob/master/demos/):   
 ![ComCom demo](https://github.com/bajuwa/ComicCompiler/blob/master/demos/simple.gif)
