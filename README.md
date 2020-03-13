@@ -5,8 +5,9 @@ A small demo can be seen here, or you can [view all demos](https://github.com/ba
 ![ComCom demo](https://github.com/bajuwa/ComicCompiler/blob/master/demos/simple.gif)
 
 ## Installation
-1. Make sure you can run shell scripts. 
-     1. If you're on Windows then you'll need to download an sh.exe file and put it on your PATH, or use a command line terminal replacement like Git Bash (https://git-scm.com/downloads)
+1. Make sure you can run shell scripts. Generally speaking you have 2 options:
+     1. Use a command line terminal replacement like Git Bash (https://git-scm.com/downloads) (this is what I've been using)
+     2. On Windows 10 you can activate WSL and install a distro of your choice, more info: https://docs.microsoft.com/en-us/windows/wsl/install-win10
 2. Install ImageMagick (Version 6 or 7): https://imagemagick.org/script/download.php
      1. When installing, an option to 'add to path' should already be selected for you. This is required so don't uncheck it!
 3. Download the **comcom** file to any location you want, but make sure to add that location to your PATH
@@ -17,9 +18,6 @@ A small demo can be seen here, or you can [view all demos](https://github.com/ba
       1. For this example, we'll assume your images are all named something like `image001.jpg`.  If this isn't the case, see the [Common Problems](#common-problems) section.
 2. Open up that folder in your command line.
 3. Run the main `comcom` command (no additional arguments necessary)
-      1. If you're running Git Bash and the 'comcom' script is on your path, `comcom` should be enough.
-      2. If you're running in the default Windows terminal, you will need to call the script using the sh.exe (which you will most likely need to download separately):   
-      `sh.exe comcom` or, if sh.exe isn't on your path, `"C:\Program Files\Git\bin\sh.exe" comcom`  
 4. At this point, you'll see information printed to your screen.  If all goes well you should see something like `Starting compilation...`.
 5. Once the script is done, it will say something like `Compilation Complete` and will stop.  You can then open up the new `./Compiled/` folder in your current directory and see the pages that were generated.
       1. If the pages don't look as you want them, then you'll have to add arguments to adjust the behaviour.  Below in are some common examples, but you can see a complete list in the [Command Line Arguments](#command-line-arguments) section.
