@@ -1,0 +1,14 @@
+Command:
+> comcom -h 300
+Expected Output:
+- Each 'page' is no less than 300 pixels high
+- The first 2 pages should contain 2 images each (with the final 5th image being on it's own)
+Common Error Output:
+- [Issue #15] The algorithm doesn't start checking for min-height until after the next image after the page passes the min height.  In this case, min-height of 300 isn't passed until after 2 images are stitched together, and then it checks the third image for whitespace at the bottom and performs the break at the end of that third image.
+
+Command:
+> comcom -h 300 -m 1
+Expected Output:
+- Each 'page' is no less than 300 pixels high
+Common Error Output:
+- [Issue #34] No cropping/splitting occurred at all....

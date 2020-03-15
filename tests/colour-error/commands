@@ -1,0 +1,7 @@
+Command:
+> comcom -ce 5000 -m 1
+Expected Output:
+- 3 pages cut on the off-white areas
+Common Error Output:
+- A single page due to no pure white
+- 2 pages if `-m 1` not set/working
