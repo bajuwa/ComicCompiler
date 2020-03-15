@@ -1,0 +1,13 @@
+Command:
+> comcom -h 1000
+Expected Output:
+- Each 'page' is no less than 1000 pixels high
+Common Error Output:
+- N/A
+
+Command:
+> comcom -h 1000 -m 1
+Expected Output:
+- Each 'page' is no less than 1000 pixels high
+Common Error Output:
+- [Issue #15] The output page is cropped such that it goes below it's min height setting

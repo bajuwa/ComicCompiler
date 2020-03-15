@@ -1,0 +1,8 @@
+Command:
+> comcom -m 1
+Expected Output:
+- A series of pages that don't cut through bubbles/text but do cut on available whitespace between panels
+Common Error Output:
+- [Issue #8] Long running times (~300sec ~= 4.5 min)
+- [Issue #TBD] The first page is too long and looks like it should have had a break in the middle (two areas of whitespace between panels)
+- A single page due to lots of art and no discernible 'panel whitespace' (via `-m 0`)
