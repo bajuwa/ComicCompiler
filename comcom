@@ -17,7 +17,8 @@ BREAK_POINT_ROW_CHECK_INCREMENTS=10
 BREAK_POINT_ROW_CHECK_BATCH_MULTIPLIER=20
 LOGGING_MODE=0 # 0 for normal, 1 for debug, 2 for verbose
 CLEAN_OUTPUT_DIRECTORY=1 # 0 for true, 1 for false
-CONFIRM_EXIT=0 # 0 for true, 1 for false
+CONFIRM_EXIT=1 # 0 for true, 1 for false
+OPEN_ON_COMPLETE=1 # 0 for true, 1 for false
 
 # ImageMagick commands (change depending on version, default v7)
 IM_VERSION=7
@@ -100,10 +101,13 @@ case $1 in
 	IM_CONVERT="magick convert"
     ;;
     -x)
-    CONFIRM_EXIT=1
+    CONFIRM_EXIT=0
     ;;
     --clean)
     CLEAN_OUTPUT_DIRECTORY=0
+    ;;
+    --open)
+    OPEN_ON_COMPLETE=0
     ;;
 esac
 shift
@@ -370,7 +374,12 @@ else
 	echo "Comic Compilation - Complete! (time: "${totalTime}"s)"
 fi
 
-if [[ ${CONFIRM_EXIT} -gt 0 ]]
+if [[ ${OPEN_ON_COMPLETE} -eq 0 ]]
+then
+	explorer . &
+fi
+
+if [[ ${CONFIRM_EXIT} -eq 0 ]]
 then
 	echo ""
 	read -p "Press enter to exit"
