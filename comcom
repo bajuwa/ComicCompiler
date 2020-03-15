@@ -16,6 +16,7 @@ BREAKPOINT_DETECTION_MODE=0
 BREAK_POINT_ROW_CHECK_INCREMENTS=10
 BREAK_POINT_ROW_CHECK_BATCH_MULTIPLIER=20
 LOGGING_MODE=0 # 0 for normal, 1 for debug, 2 for verbose
+CLEAN_OUTPUT_DIRECTORY=1 # 0 for true, 1 for false
 CONFIRM_EXIT=0 # 0 for true, 1 for false
 
 # ImageMagick commands (change depending on version, default v7)
@@ -101,6 +102,9 @@ case $1 in
     -x)
     CONFIRM_EXIT=1
     ;;
+    --clean)
+    CLEAN_OUTPUT_DIRECTORY=0
+    ;;
 esac
 shift
 done
@@ -121,6 +125,7 @@ then
 	echo "IMAGE_FILE_EXTENSION=$IMAGE_FILE_EXTENSION"
 	echo "SPLIT_ON_COLOUR=$SPLIT_ON_COLOUR"
 	echo "COLOUR_ERROR_TOLERANCE=$COLOUR_ERROR_TOLERANCE"
+	echo "COLOUR_STANDARD_DEVIATION=$COLOUR_STANDARD_DEVIATION"
 	echo "BREAKPOINT_DETECTION_MODE=$BREAKPOINT_DETECTION_MODE"
 	echo "BREAK_POINT_ROW_CHECK_INCREMENTS=$BREAK_POINT_ROW_CHECK_INCREMENTS"
 	echo "BREAK_POINT_ROW_CHECK_BATCH_MULTIPLIER=$BREAK_POINT_ROW_CHECK_BATCH_MULTIPLIER"
@@ -333,6 +338,17 @@ function combineImages {
 	done
 };
 
+function ensureDirectory {
+    directory=$1
+
+    if [ $CLEAN_OUTPUT_DIRECTORY -gt 0 ]
+    then
+    	rm -rf $directory;
+    fi
+
+    mkdir -p $directory;
+}
+
 # find all files to be combined
 # allow using null-char for file name split (better array parsing) via: -print0 
 imageFileNames=()
@@ -347,7 +363,7 @@ then
 else
 	echo "Starting compilation..."
 	start=$(date +%s)
-	mkdir -p $OUTPUT_DIRECTORY;
+	ensureDirectory $OUTPUT_DIRECTORY;
     combineImages;
 	end=$(date +%s)
 	totalTime=$(($end-$start))
