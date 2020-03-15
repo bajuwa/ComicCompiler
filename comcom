@@ -109,13 +109,13 @@ esac
 shift
 done
 
-hash $IM_IDENTIFY 2>/dev/null || { echo >&2 "I require the ImageMagick command '$IM_IDENTIFY' but it's not installed.  Aborting."; exit 1; }
-hash $IM_CONVERT 2>/dev/null || { echo >&2 "I require the ImageMagick command '$IM_CONVERT' but it's not installed.  Aborting."; exit 1; }
+hash ${IM_IDENTIFY} 2>/dev/null || { echo >&2 "I require the ImageMagick command '$IM_IDENTIFY' but it's not installed.  Aborting."; exit 1; }
+hash ${IM_CONVERT} 2>/dev/null || { echo >&2 "I require the ImageMagick command '$IM_CONVERT' but it's not installed.  Aborting."; exit 1; }
 
-if [ $LOGGING_MODE -ge 1 ]
+if [[ ${LOGGING_MODE} -ge 1 ]]
 then
 	echo "Running ComCom with options: "
-	echo "LOGGING_MODE=$LOGGING_MODE"
+	echo "LOGGING_MODE=${LOGGING_MODE}"
 	echo "IM_VERSION=$IM_VERSION"
 	echo "MIN_HEIGHT_PER_PAGE=$MIN_HEIGHT_PER_PAGE"
 	echo "INPUT_IMAGE_NAME_PREFIX=$INPUT_IMAGE_NAME_PREFIX"
@@ -138,16 +138,16 @@ cropFromBottom=0
 cropFromTopNextPage=0
 
 function fileEndsInBreakPoint {
-	fileSampling="$currentImageFileName["$currentImageWidth"x1+0+$((currentImageHeight-1))]"
-	grayMeanValue=$($IM_IDENTIFY -format %[mean] $fileSampling)
-	standardDeviation=$($IM_IDENTIFY -format %[standard-deviation] $fileSampling)
+	fileSampling="$currentImageFileName["${currentImageWidth}"x1+0+$((currentImageHeight-1))]"
+	grayMeanValue=$(${IM_IDENTIFY} -format %[mean] ${fileSampling})
+	standardDeviation=$(${IM_IDENTIFY} -format %[standard-deviation] ${fileSampling})
 	colourDifference=$((${grayMeanValue%.*} - $SPLIT_ON_COLOUR))
-	if [ ${colourDifference#-} -le $COLOUR_ERROR_TOLERANCE ] && [ ${standardDeviation%.*} -le $COLOUR_STANDARD_DEVIATION ]
+	if [[ ${colourDifference#-} -le ${COLOUR_ERROR_TOLERANCE} ]] && [[ ${standardDeviation%.*} -le ${COLOUR_STANDARD_DEVIATION} ]]
 	then 
-		[ $LOGGING_MODE -ge 1 ] && echo "This image ends in a breakpoint: " $currentImageFileName;
+		[[ ${LOGGING_MODE} -ge 1 ]] && echo "This image ends in a breakpoint: " ${currentImageFileName};
 		true
 	else 
-		[ $LOGGING_MODE -ge 2 ] && echo "This image does not end in a breakpoint: " $currentImageFileName;
+		[[ ${LOGGING_MODE} -ge 2 ]] && echo "This image does not end in a breakpoint: " ${currentImageFileName};
 		false
 	fi
 };
@@ -155,47 +155,47 @@ function fileEndsInBreakPoint {
 # This is a super nasty/slow method because of how many identify calls being made....
 # Maybe upgrade this to a binary search using fileMayContainBreakPoint?
 function findBreakPoint {
-	[ $LOGGING_MODE -ge 1 ] && echo "Scanning file for breakpoint: "$currentImageFileName
+	[[ ${LOGGING_MODE} -ge 1 ]] && echo "Scanning file for breakpoint: "$currentImageFileName
 	
 	outerBatchSize=$((BREAK_POINT_ROW_CHECK_INCREMENTS * BREAK_POINT_ROW_CHECK_BATCH_MULTIPLIER))
 	rowBeingChecked=0;
-	while [ $rowBeingChecked -lt $currentImageHeight ]
+	while [[ $rowBeingChecked -lt $currentImageHeight ]]
 	do
 		printf "."
 		batchStart=$rowBeingChecked
 		batchEnd=$((rowBeingChecked + outerBatchSize))
 		batchEnd=$(( batchEnd >= currentImageHeight ? currentImageHeight-1 : batchEnd ))
 		batchFileSample=$currentImageFileName"["$currentImageWidth"x1+0+"$rowBeingChecked"]"
-		[ $LOGGING_MODE -ge 2 ] && echo "Checking batch for possible breakpoint: $batchStart-$batchEnd"
-		if ! fileSampleContainsColour $batchFileSample $SPLIT_ON_COLOUR $COLOUR_ERROR_TOLERANCE
+		[[ ${LOGGING_MODE} -ge 2 ]] && echo "Checking batch for possible breakpoint: $batchStart-$batchEnd"
+		if ! fileSampleContainsColour ${batchFileSample} ${SPLIT_ON_COLOUR} ${COLOUR_ERROR_TOLERANCE}
 		then
-			[ $LOGGING_MODE -ge 1 ] && echo "Colour not found in sample batch $batchStart-$batchEnd, skipping to next batch"
+			[[ ${LOGGING_MODE} -ge 1 ]] && echo "Colour not found in sample batch $batchStart-$batchEnd, skipping to next batch"
 			rowBeingChecked=$((rowBeingChecked+outerBatchSize))
 			continue
 		else
-			[ $LOGGING_MODE -ge 2 ] && echo "Colour found in sample batch $batchStart-$batchEnd, checking rows for breakpoint"
+			[[ ${LOGGING_MODE} -ge 2 ]] && echo "Colour found in sample batch $batchStart-$batchEnd, checking rows for breakpoint"
 		fi
 		
 		for ((i = $rowBeingChecked; i < $batchEnd; i+=$BREAK_POINT_ROW_CHECK_INCREMENTS))
 		do
-			fileSampling=$currentImageFileName"["$currentImageWidth"x1+0+"$i"]"
-			grayMeanValue=$($IM_IDENTIFY -format %[mean] $fileSampling)
+			fileSampling=${currentImageFileName}"["${currentImageWidth}"x1+0+"${i}"]"
+			grayMeanValue=$(${IM_IDENTIFY} -format %[mean] ${fileSampling})
 			colourDifference=$((${grayMeanValue%.*} - $SPLIT_ON_COLOUR))
-			#[ $LOGGING_MODE -ge 2 ] && echo "Testing if mean gray value $grayMeanValue is within error tolerance $COLOUR_ERROR_TOLERANCE of breakpoint colour $SPLIT_ON_COLOUR, calculating difference: $colourDifference"
-			if [ ${colourDifference#-} -le $COLOUR_ERROR_TOLERANCE ]
+			#[ ${LOGGING_MODE} -ge 2 ] && echo "Testing if mean gray value $grayMeanValue is within error tolerance $COLOUR_ERROR_TOLERANCE of breakpoint colour $SPLIT_ON_COLOUR, calculating difference: $colourDifference"
+			if [[ ${colourDifference#-} -le ${COLOUR_ERROR_TOLERANCE} ]]
 			then 
-				#[ $LOGGING_MODE -ge 2 ] && echo "Colour value $grayMeanValue was within tolerance $SPLIT_ON_COLOUR +-$COLOUR_ERROR_TOLERANCE"
-				standardDeviation=$($IM_IDENTIFY -format %[standard-deviation] $fileSampling)
-				if [ ${standardDeviation%.*} -le $COLOUR_STANDARD_DEVIATION ]
+				#[ ${LOGGING_MODE} -ge 2 ] && echo "Colour value $grayMeanValue was within tolerance $SPLIT_ON_COLOUR +-$COLOUR_ERROR_TOLERANCE"
+				standardDeviation=$(${IM_IDENTIFY} -format %[standard-deviation] ${fileSampling})
+				if [[ ${standardDeviation%.*} -le ${COLOUR_STANDARD_DEVIATION} ]]
 				then 
 					cropFromBottom=$((currentImageHeight-i-1))
-					cropFromTopNextPage=$i
-					[ $LOGGING_MODE -ge 1 ] && echo "Found a breakpoint in: "$currentImageFileName
-					[ $LOGGING_MODE -ge 2 ] && echo "cropFromBottom: "$cropFromBottom
-					[ $LOGGING_MODE -ge 2 ] && echo "cropFromTopNextPage: "$cropFromTopNextPage
+					cropFromTopNextPage=${i}
+					[[ ${LOGGING_MODE} -ge 1 ]] && echo "Found a breakpoint in: "${currentImageFileName}
+					[[ ${LOGGING_MODE} -ge 2 ]] && echo "cropFromBottom: "${cropFromBottom}
+					[[ ${LOGGING_MODE} -ge 2 ]] && echo "cropFromTopNextPage: "${cropFromTopNextPage}
 					return 0
 				else 
-					[ $LOGGING_MODE -ge 2 ] && echo "Colour value $grayMeanValue was within tolerance $SPLIT_ON_COLOUR +-$COLOUR_ERROR_TOLERANCE but standard-deviation was $standardDeviation"
+					[[ ${LOGGING_MODE} -ge 2 ]] && echo "Colour value $grayMeanValue was within tolerance $SPLIT_ON_COLOUR +-$COLOUR_ERROR_TOLERANCE but standard-deviation was $standardDeviation"
 				fi
 			fi
 		done
@@ -206,7 +206,7 @@ function findBreakPoint {
 	# If we couldn't find a breakpoint, then return 0's
 	cropFromBottom=0
 	cropFromTopNextPage=0
-	[ $LOGGING_MODE -ge 2 ] && echo "Could not find a breakpoint in: "$currentImageFileName
+	[[ ${LOGGING_MODE} -ge 2 ]] && echo "Could not find a breakpoint in: "${currentImageFileName}
 	return 1
 };
 
@@ -215,18 +215,18 @@ function fileSampleContainsColour {
 	colourToTest=$2
 	colourErrorTolerance=$3
 	
-	[ $LOGGING_MODE -ge 2 ] && echo "Checking line for colour $colourToTest using sampling:" $fileSample;
+	[[ ${LOGGING_MODE} -ge 2 ]] && echo "Checking line for colour $colourToTest using sampling:" ${fileSample};
 
-	grayMinValue=$($IM_IDENTIFY -format %[min] $fileSample)
-	grayMaxValue=$($IM_IDENTIFY -format %[max] $fileSample)
-	[ $LOGGING_MODE -ge 2 ] && echo "File colour range: $grayMinValue-$grayMaxValue";
+	grayMinValue=$(${IM_IDENTIFY} -format %[min] ${fileSample})
+	grayMaxValue=$(${IM_IDENTIFY} -format %[max] ${fileSample})
+	[[ ${LOGGING_MODE} -ge 2 ]] && echo "File colour range: $grayMinValue-$grayMaxValue";
 	
-	if [ $((colourToTest + colourErrorTolerance)) -ge $grayMinValue ] || [ $grayMaxValue -ge $((colourToTest - colourErrorTolerance)) ]
+	if [[ $((colourToTest + colourErrorTolerance)) -ge ${grayMinValue} ]] || [[ ${grayMaxValue} -ge $((colourToTest - colourErrorTolerance)) ]]
 	then
-		[ $LOGGING_MODE -ge 2 ] && echo "File sampling contains breakpoint colour within error tolerance";
+		[[ ${LOGGING_MODE} -ge 2 ]] && echo "File sampling contains breakpoint colour within error tolerance";
 		return 0;
 	else
-		[ $LOGGING_MODE -ge 1 ] && echo "File sampling did not contain breakpoint colour within error tolerance";
+		[[ ${LOGGING_MODE} -ge 1 ]] && echo "File sampling did not contain breakpoint colour within error tolerance";
 		return 1;
 	fi
 }
@@ -236,46 +236,46 @@ function cropFromTopAndBottom {
 	pixelToCropFromTop=$2
 	pixelToCropFromBottom=$3
 	
-	[ $LOGGING_MODE -ge 2 ] && echo "Cropping file $fileToCrop";
-	[ $LOGGING_MODE -ge 2 ] && echo "pixelToCropFromTop: $pixelToCropFromTop";
-	[ $LOGGING_MODE -ge 2 ] && echo "pixelToCropFromBottom: $pixelToCropFromBottom";
+	[[ ${LOGGING_MODE} -ge 2 ]] && echo "Cropping file $fileToCrop";
+	[[ ${LOGGING_MODE} -ge 2 ]] && echo "pixelToCropFromTop: $pixelToCropFromTop";
+	[[ ${LOGGING_MODE} -ge 2 ]] && echo "pixelToCropFromBottom: $pixelToCropFromBottom";
 	
-	pageTotalHeight=$($IM_IDENTIFY -format "%h" $fileToCrop)
+	pageTotalHeight=$(${IM_IDENTIFY} -format "%h" ${fileToCrop})
 	pageCroppedHeight=$((pageTotalHeight-pixelToCropFromTop-pixelToCropFromBottom))
-	[ $LOGGING_MODE -ge 2 ] && echo "pageTotalHeight: $pageTotalHeight";
-	[ $LOGGING_MODE -ge 2 ] && echo "pageCroppedHeight: $pageCroppedHeight";
+	[[ ${LOGGING_MODE} -ge 2 ]] && echo "pageTotalHeight: $pageTotalHeight";
+	[[ ${LOGGING_MODE} -ge 2 ]] && echo "pageCroppedHeight: $pageCroppedHeight";
 	
-	cropSampleRange=$currentImageWidth"x"$pageCroppedHeight"+0+"$pixelToCropFromTop
-	[ $LOGGING_MODE -ge 1 ] && echo "Cropping: $fileToCrop[$cropSampleRange]";
-	$IM_CONVERT -crop $cropSampleRange $fileToCrop $fileToCrop
+	cropSampleRange=${currentImageWidth}"x"${pageCroppedHeight}"+0+"${pixelToCropFromTop}
+	[[ ${LOGGING_MODE} -ge 1 ]] && echo "Cropping: $fileToCrop[$cropSampleRange]";
+	${IM_CONVERT} -crop ${cropSampleRange} ${fileToCrop} ${fileToCrop}
 	
 	return
 };
 
 function findBatchSizeForNextPage {
-	[ $LOGGING_MODE -ge 1 ] && echo "Finding batch size for $pageFileName starting at $imageIndex";
+	[[ ${LOGGING_MODE} -ge 1 ]] && echo "Finding batch size for $pageFileName starting at $imageIndex";
 	imageBatchSize=0;
 	
 	cumulativePageHeight=0;
 	# find the next page separation spot (test for breakpoint line)
-	while [ $imageBatchSize -lt $((totalImageCount-imageIndex)) ]
+	while [[ ${imageBatchSize} -lt $((totalImageCount-imageIndex)) ]]
 	do
 		printf "."
 		imageIndexToTest=$((imageIndex+imageBatchSize))
 		currentImageFileName=${imageFileNames[$imageIndexToTest]}
 		
-		currentImageWidth=$($IM_IDENTIFY -format "%w" $currentImageFileName)
-		currentImageHeight=$($IM_IDENTIFY -format "%h" $currentImageFileName)
-		[ $LOGGING_MODE -ge 2 ] && echo "Current image dimensions (WxH): $currentImageWidth x $currentImageHeight";
+		currentImageWidth=$(${IM_IDENTIFY} -format "%w" ${currentImageFileName})
+		currentImageHeight=$(${IM_IDENTIFY} -format "%h" ${currentImageFileName})
+		[[ ${LOGGING_MODE} -ge 2 ]] && echo "Current image dimensions (WxH): $currentImageWidth x $currentImageHeight";
 		
 		# Check if totalHeight + thisImagesHeight > minRequiredHeight
 		# If so, start looking for a breakpoint at the minRequiredHeight - totalHeight
 		# Add next images height to the overall height
 		# If a breakpoint found, store cropFromBottom + cropFromTop for later and break loop
-		if [ $cumulativePageHeight -ge $MIN_HEIGHT_PER_PAGE ] && [ $imageIndexToTest -lt $((totalImageCount-1)) ]
+		if [[ ${cumulativePageHeight} -ge ${MIN_HEIGHT_PER_PAGE} ]] && [[ ${imageIndexToTest} -lt $((totalImageCount-1)) ]]
 		then
-			[ $LOGGING_MODE -ge 1 ] && echo "Reached min page height $MIN_HEIGHT_PER_PAGE, checking for breakpoint in $currentImageFileName";
-			if [ $BREAKPOINT_DETECTION_MODE -eq 1 ]
+			[[ ${LOGGING_MODE} -ge 1 ]] && echo "Reached min page height $MIN_HEIGHT_PER_PAGE, checking for breakpoint in $currentImageFileName";
+			if [[ ${BREAKPOINT_DETECTION_MODE} -eq 1 ]]
 			then
 				printf "\r%b" "\033[2K" "Searching for breakpoint in '$currentImageFileName'"
 				if findBreakPoint 
@@ -289,7 +289,7 @@ function findBatchSizeForNextPage {
 				fi
 			fi
 		else
-			[ $LOGGING_MODE -ge 2 ] && echo "Haven't reach min page height $MIN_HEIGHT_PER_PAGE, current height: $cumulativePageHeight";
+			[[ ${LOGGING_MODE} -ge 2 ]] && echo "Haven't reach min page height $MIN_HEIGHT_PER_PAGE, current height: $cumulativePageHeight";
 		fi
 		cumulativePageHeight=$((cumulativePageHeight+currentImageHeight))
 		imageBatchSize=$((imageBatchSize+1))
@@ -301,29 +301,29 @@ function combineImages {
 	imageIndex=0;
 	totalImageCount=${#imageFileNames[@]};
 
-	while [ $imageIndex -lt $totalImageCount ]
+	while [[ ${imageIndex} -lt ${totalImageCount} ]]
 	do		
-		pageFileName=$(printf "$OUTPUT_PAGE_NAME_PREFIX%03d.$IMAGE_FILE_EXTENSION" $pageIndex)
+		pageFileName=$(printf "$OUTPUT_PAGE_NAME_PREFIX%03d.$IMAGE_FILE_EXTENSION" ${pageIndex})
 		
 		printf "Finding images to combine into '$pageFileName'"
 		
 		findBatchSizeForNextPage
 		
 		# Now that we've picked out our image range, combine them to a single file
-		$IM_CONVERT -append ${imageFileNames[@]:$imageIndex:$imageBatchSize+1} -colorspace sRGB $OUTPUT_DIRECTORY$pageFileName;
+		${IM_CONVERT} -append ${imageFileNames[@]:${imageIndex}:${imageBatchSize}+1} -colorspace sRGB ${OUTPUT_DIRECTORY}${pageFileName};
 		imagesCombined=$((imageBatchSize+1))
-		imagesCombined=$(printf %2s $imagesCombined)
+		imagesCombined=$(printf %2s ${imagesCombined})
 		printf "\r%b" "\033[2K" "Combined $imagesCombined images into '$pageFileName': $imageIndex - $((imageIndex+imageBatchSize))\n"
 		
 		# If we have cropFromBottom/cropFromTop, then perform crop on recently created page
-		if [ $((cropFromBottom+cropFromTop)) -gt 0 ]
+		if [[ $((cropFromBottom+cropFromTop)) -gt 0 ]]
 		then
-			cropFromTopAndBottom $OUTPUT_DIRECTORY$pageFileName $cropFromTop $cropFromBottom;
+			cropFromTopAndBottom ${OUTPUT_DIRECTORY}${pageFileName} ${cropFromTop} ${cropFromBottom};
 		else
-			[ $LOGGING_MODE -ge 2 ] && echo "No cropping occurred for $pageFileName";
+			[[ ${LOGGING_MODE} -ge 2 ]] && echo "No cropping occurred for $pageFileName";
 		fi
 		
-		if [ $cropFromBottom -eq 0 ]
+		if [[ ${cropFromBottom} -eq 0 ]]
 		then
 			imageBatchSize=$((imageBatchSize+1))
 		fi
@@ -331,22 +331,22 @@ function combineImages {
 		# Increment our index for the next round
 		pageIndex=$((pageIndex+1));
 		imageIndex=$((imageIndex+imageBatchSize));
-		cropFromTop=$cropFromTopNextPage;
+		cropFromTop=${cropFromTopNextPage};
 		cropFromBottom=0;
 		
-		[ $LOGGING_MODE -ge 1 ] && echo "";
+		[[ ${LOGGING_MODE} -ge 1 ]] && echo "";
 	done
 };
 
 function ensureDirectory {
     directory=$1
 
-    if [ $CLEAN_OUTPUT_DIRECTORY -gt 0 ]
+    if [[ ${CLEAN_OUTPUT_DIRECTORY} -gt 0 ]]
     then
-    	rm -rf $directory;
+    	rm -rf ${directory};
     fi
 
-    mkdir -p $directory;
+    mkdir -p ${directory};
 }
 
 # find all files to be combined
@@ -354,23 +354,23 @@ function ensureDirectory {
 imageFileNames=()
 while IFS=  read -r -d $'\0'; do
     imageFileNames+=("$REPLY")
-done < <(find $INPUT_DIRECTORY -maxdepth $MAX_DIRECTORY_DEPTH -type f -iname "$INPUT_IMAGE_NAME_PREFIX*.$IMAGE_FILE_EXTENSION" -print0)
+done < <(find ${INPUT_DIRECTORY} -maxdepth ${MAX_DIRECTORY_DEPTH} -type f -iname "$INPUT_IMAGE_NAME_PREFIX*.$IMAGE_FILE_EXTENSION" -print0)
 # echo ${imageFileNames[*]};
 
-if [ ${#imageFileNames[@]} -eq 0 ]; 
+if [[ ${#imageFileNames[@]} -eq 0 ]]; 
 then
     echo "Couldn't find any images to combine";
 else
 	echo "Starting compilation..."
 	start=$(date +%s)
-	ensureDirectory $OUTPUT_DIRECTORY;
+	ensureDirectory ${OUTPUT_DIRECTORY};
     combineImages;
 	end=$(date +%s)
 	totalTime=$(($end-$start))
-	echo "Comic Compilation - Complete! (time: "$totalTime"s)"
+	echo "Comic Compilation - Complete! (time: "${totalTime}"s)"
 fi
 
-if [ $CONFIRM_EXIT -gt 0 ] 
+if [[ ${CONFIRM_EXIT} -gt 0 ]]
 then
 	echo ""
 	read -p "Press enter to exit"
