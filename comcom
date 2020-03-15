@@ -11,6 +11,7 @@ MAX_DIRECTORY_DEPTH=1
 OUTPUT_DIRECTORY="./Compiled/"
 SPLIT_ON_COLOUR=65535
 COLOUR_ERROR_TOLERANCE=0
+COLOUR_STANDARD_DEVIATION=0
 BREAKPOINT_DETECTION_MODE=0
 BREAK_POINT_ROW_CHECK_INCREMENTS=10
 BREAK_POINT_ROW_CHECK_BATCH_MULTIPLIER=20
@@ -40,6 +41,10 @@ case $1 in
     ;;
     -ce|--colour-error-tolerance|--color-error-tolerance)
     COLOUR_ERROR_TOLERANCE=$2
+    shift # past argument=value
+    ;;
+    -csd|--colour-standard-deviation|--color-standard-deviation)
+    COLOUR_STANDARD_DEVIATION=$2
     shift # past argument=value
     ;;
     -e|--extension)
@@ -132,7 +137,7 @@ function fileEndsInBreakPoint {
 	grayMeanValue=$($IM_IDENTIFY -format %[mean] $fileSampling)
 	standardDeviation=$($IM_IDENTIFY -format %[standard-deviation] $fileSampling)
 	colourDifference=$((${grayMeanValue%.*} - $SPLIT_ON_COLOUR))
-	if [ ${colourDifference#-} -le $COLOUR_ERROR_TOLERANCE ] && [ ${standardDeviation%.*} -lt 1 ]
+	if [ ${colourDifference#-} -le $COLOUR_ERROR_TOLERANCE ] && [ ${standardDeviation%.*} -le $COLOUR_STANDARD_DEVIATION ]
 	then 
 		[ $LOGGING_MODE -ge 1 ] && echo "This image ends in a breakpoint: " $currentImageFileName;
 		true
@@ -176,7 +181,7 @@ function findBreakPoint {
 			then 
 				#[ $LOGGING_MODE -ge 2 ] && echo "Colour value $grayMeanValue was within tolerance $SPLIT_ON_COLOUR +-$COLOUR_ERROR_TOLERANCE"
 				standardDeviation=$($IM_IDENTIFY -format %[standard-deviation] $fileSampling)
-				if [ ${standardDeviation%.*} -eq 0 ]
+				if [ ${standardDeviation%.*} -le $COLOUR_STANDARD_DEVIATION ]
 				then 
 					cropFromBottom=$((currentImageHeight-i-1))
 					cropFromTopNextPage=$i
