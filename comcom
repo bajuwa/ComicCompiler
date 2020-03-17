@@ -225,7 +225,7 @@ function fileSampleContainsColour {
 	grayMaxValue=$(${IM_IDENTIFY} -format %[max] ${fileSample})
 	[[ ${LOGGING_MODE} -ge 2 ]] && echo "File colour range: $grayMinValue-$grayMaxValue";
 	
-	if [[ $((colourToTest + colourErrorTolerance)) -ge ${grayMinValue} ]] || [[ ${grayMaxValue} -ge $((colourToTest - colourErrorTolerance)) ]]
+	if [[ $((colourToTest + colourErrorTolerance)) -ge ${grayMinValue} ]] && [[ ${grayMaxValue} -ge $((colourToTest - colourErrorTolerance)) ]]
 	then
 		[[ ${LOGGING_MODE} -ge 2 ]] && echo "File sampling contains breakpoint colour within error tolerance";
 		return 0;
@@ -345,7 +345,7 @@ function combineImages {
 function ensureDirectory {
     directory=$1
 
-    if [[ ${CLEAN_OUTPUT_DIRECTORY} -gt 0 ]]
+    if [[ ${CLEAN_OUTPUT_DIRECTORY} -eq 0 ]]
     then
     	rm -rf ${directory};
     fi
