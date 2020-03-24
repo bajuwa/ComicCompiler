@@ -4,6 +4,7 @@
 // @version      0.1
 // @description  Downloads all images already loaded in to the page with a specific partial-source match
 // @author       bajuwa
+// @include      *
 // @grant        GM_download
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -122,9 +123,11 @@ function findImagesFromSource(sourceHref) {
         return $(".comicDetails img[src*=\"kkmh.com/image\"]");
     } else if (sourceHref.includes("ac.qq")) {
         return $("img[src*=\"manhua_detail\"]");
+    } else if (sourceHref.includes("manhuadui")) {
+        return $("div#images img[src$=jpg]");
     } else {
         console.log("WARNING: Could not determine appropriate scraping criteria, downloading all images");
-        return $("img[src^=jpg]");
+        return $("img[src$=jpg]");
     }
 }
 
