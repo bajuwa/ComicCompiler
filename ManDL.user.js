@@ -1,9 +1,11 @@
 // ==UserScript==
 // @name         ManDL (Manhua Downloader)
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.2
 // @description  Downloads all images already loaded in to the page with a specific partial-source match
 // @author       bajuwa
+// @match *://ac.qq.com/ComicView/index/*
+// @match *://*.kuaikanmanhua.com/web/comic/*
 // @grant        GM_download
 // @grant        GM_setValue
 // @grant        GM_getValue
