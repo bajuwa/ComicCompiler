@@ -60,6 +60,19 @@ The file extension of your input images and your output page files. This value i
 **Default:** "page"  
 The text that will go at the start of each output page name. The prefix is followed by a 3 digit number (zero-padded page number) and the **File Extension** that was set that matches the input image file types.
 
+### Output Page Starting Number
+**Shorthand:** -osn [number]   
+**Longhand:** --output-file-starting-number [number]   
+**Default:** 1  
+The number of the first output page.
+
+### Output Page Width
+**Shorthand:** -ow [number]   
+**Longhand:** --output-file-width [number]   
+**Default:** [First input images width]  
+The explicit width of the output pages. If no value is given, or a value of 0 is given, then the output pages will be the same width as the first input image.
+**Note:** This will modify your input images. If you want to avoid losing your original copies then make a backup of them prior to running comcom. 
+
 ### Input Directory
 **Shorthand:** -id [text]   
 **Longhand:** --input-directory [text]   
@@ -104,9 +117,22 @@ When in **Breakpoint Detection Mode #1** this value controls how large of a vert
 
 ### Split Pages on Colour
 **Shorthand:** -c [number]   
-**Longhand:** --split-on-colour [number]   
-**Default:** 65535 (white)  
-The decimal notation of the colour you want to split on.  Use 65535 for white (which is the default), 0 for black, or any number in that range for your intended colour.
+**Longhand:** --split-on-colour [number]
+**Longhand:** --split-on-color [number]   
+**Default:** 0 [pure black] and 65535 [pure white]      
+The decimal notation of the colour you want to split on.  Use 65535 for white (which is the default), 0 for black, or any number in that range for your intended colour.    
+**Note:** This argument explicitly sets the colours you want to break on, overriding the previous values.    
+**Example:** `comcom -c 123` will use the colour 123 instead of 0 and 65355     
+
+### Split Pages on Colour    
+**Shorthand:** +c [number]       
+**Longhand:** --additional-split-on-colour [number]    
+**Longhand:** --additional-split-on-color [number]    
+**Default:** 0 [pure black] and 65535 [pure white]      
+Adds an additional decimal notation colour you want to split on.     
+**Note:** This argument will add a single new colour to the list of colours you want to break on.  You can add as many colours as you want by adding more `+c` arguments.         
+**Example:** `comcom +c 123 +c 456 +c 789` will use the colours: 0, 65355, 123, 456, 789        
+**Example:** `comcom -c 123 +c 456 +c 789` will use the colours: 123, 456, 789        
 
 ### Colour Split Error Tolerance
 **Shorthand:** -ce [number]   
