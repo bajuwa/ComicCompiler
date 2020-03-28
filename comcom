@@ -7,6 +7,7 @@ INPUT_IMAGE_NAME_PREFIX="image"
 IMAGE_FILE_EXTENSION="jpg"
 OUTPUT_PAGE_NAME_PREFIX="page"
 OUTPUT_PAGE_START_NUMBER=1
+OUTPUT_PAGE_WIDTH=0
 INPUT_DIRECTORY="./"
 MAX_DIRECTORY_DEPTH=1
 OUTPUT_DIRECTORY="./Compiled/"
@@ -58,8 +59,12 @@ case $1 in
     OUTPUT_PAGE_NAME_PREFIX=$2
     shift # past argument=value
     ;;
-    --output-file-starting-number)
+    -osn|--output-file-starting-number)
     OUTPUT_PAGE_START_NUMBER=$2
+    shift # past argument=value
+    ;;
+    -ow|--output-file-width)
+    OUTPUT_PAGE_WIDTH=$2
     shift # past argument=value
     ;;
     -id|--input-directory)
@@ -129,6 +134,7 @@ then
 	echo "MIN_HEIGHT_PER_PAGE=$MIN_HEIGHT_PER_PAGE"
 	echo "INPUT_IMAGE_NAME_PREFIX=$INPUT_IMAGE_NAME_PREFIX"
 	echo "OUTPUT_PAGE_NAME_PREFIX=$OUTPUT_PAGE_NAME_PREFIX"
+	echo "OUTPUT_PAGE_WIDTH=$OUTPUT_PAGE_WIDTH"
 	echo "INPUT_DIRECTORY=$INPUT_DIRECTORY"
 	echo "OUTPUT_DIRECTORY=$OUTPUT_DIRECTORY"
 	echo "IMAGE_FILE_EXTENSION=$IMAGE_FILE_EXTENSION"
@@ -368,6 +374,27 @@ function ensureDirectory {
     mkdir -p ${directory};
 }
 
+function ensureConsistentWidth {
+    targetWidth=$1
+    if [[ ${targetWidth} -eq 0 ]]
+    then
+        [[ ${LOGGING_MODE} -ge 1 ]] && echo "No given width, extracting first images width: ${imageFileNames[0]}";
+        targetWidth=$(${IM_IDENTIFY} -format "%w" ${imageFileNames[0]})
+    fi
+
+    echo "Checking input images are target width: ${targetWidth}";
+
+	for fileNameToResize in "${imageFileNames[@]}"
+	do
+        fileCurrentWidth=$(${IM_IDENTIFY} -format "%w" ${fileNameToResize})
+        if [[ ! ${fileCurrentWidth} -eq ${targetWidth} ]]
+        then
+            [[ ${LOGGING_MODE} -ge 2 ]] && echo "${fileNameToResize} needs to be resized, current width: ${fileCurrentWidth}";
+            ${IM_CONVERT} ${fileNameToResize} -adaptive-resize ${targetWidth}x ${fileNameToResize}
+        fi
+    done
+}
+
 # find all files to be combined
 # allow using null-char for file name split (better array parsing) via: -print0 
 imageFileNames=()
@@ -383,6 +410,7 @@ else
 	echo "Starting compilation..."
 	start=$(date +%s)
 	ensureDirectory ${OUTPUT_DIRECTORY};
+	ensureConsistentWidth ${OUTPUT_PAGE_WIDTH};
     combineImages;
 	end=$(date +%s)
 	totalTime=$(($end-$start))

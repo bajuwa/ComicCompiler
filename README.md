@@ -61,9 +61,17 @@ The file extension of your input images and your output page files. This value i
 The text that will go at the start of each output page name. The prefix is followed by a 3 digit number (zero-padded page number) and the **File Extension** that was set that matches the input image file types.
 
 ### Output Page Starting Number
-**Longhand:** --output-file-starting-number [text]   
+**Shorthand:** -osn [number]   
+**Longhand:** --output-file-starting-number [number]   
 **Default:** 1  
 The number of the first output page.
+
+### Output Page Width
+**Shorthand:** -ow [number]   
+**Longhand:** --output-file-width [number]   
+**Default:** [First input images width]  
+The explicit width of the output pages. If no value is given, or a value of 0 is given, then the output pages will be the same width as the first input image.
+**Note:** This will modify your input images. If you want to avoid losing your original copies then make a backup of them prior to running comcom. 
 
 ### Input Directory
 **Shorthand:** -id [text]   
