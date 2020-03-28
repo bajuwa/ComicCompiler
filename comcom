@@ -11,7 +11,7 @@ OUTPUT_PAGE_WIDTH=0
 INPUT_DIRECTORY="./"
 MAX_DIRECTORY_DEPTH=1
 OUTPUT_DIRECTORY="./Compiled/"
-SPLIT_ON_COLOUR=65535
+SPLIT_ON_COLOUR=(0 65535)
 COLOUR_ERROR_TOLERANCE=0
 COLOUR_STANDARD_DEVIATION=0
 BREAKPOINT_DETECTION_MODE=0
@@ -40,7 +40,11 @@ case $1 in
     shift # past argument=value
     ;;
     -c|--split-on-colour|--split-on-color)
-    SPLIT_ON_COLOUR=$2
+    SPLIT_ON_COLOUR=($2)
+    shift # past argument=value
+    ;;
+    +c|--additional-split-on-colour|--additional-split-on-color)
+    SPLIT_ON_COLOUR+=($2)
     shift # past argument=value
     ;;
     -ce|--colour-error-tolerance|--color-error-tolerance)
@@ -138,7 +142,7 @@ then
 	echo "INPUT_DIRECTORY=$INPUT_DIRECTORY"
 	echo "OUTPUT_DIRECTORY=$OUTPUT_DIRECTORY"
 	echo "IMAGE_FILE_EXTENSION=$IMAGE_FILE_EXTENSION"
-	echo "SPLIT_ON_COLOUR=$SPLIT_ON_COLOUR"
+	echo "SPLIT_ON_COLOUR=${SPLIT_ON_COLOUR[@]}"
 	echo "COLOUR_ERROR_TOLERANCE=$COLOUR_ERROR_TOLERANCE"
 	echo "COLOUR_STANDARD_DEVIATION=$COLOUR_STANDARD_DEVIATION"
 	echo "BREAKPOINT_DETECTION_MODE=$BREAKPOINT_DETECTION_MODE"
@@ -166,15 +170,18 @@ function fileEndsInBreakPoint {
 	fileSampling="$currentImageFileName["${currentImageWidth}"x1+0+$((currentImageHeight-1))]"
 	grayMeanValue=$(${IM_IDENTIFY} -format %[mean] ${fileSampling})
 	standardDeviation=$(${IM_IDENTIFY} -format %[standard-deviation] ${fileSampling})
-	colourDifference=$((${grayMeanValue%.*} - $SPLIT_ON_COLOUR))
-	if [[ ${colourDifference#-} -le ${COLOUR_ERROR_TOLERANCE} ]] && [[ ${standardDeviation%.*} -le ${COLOUR_STANDARD_DEVIATION} ]]
-	then
-		[[ ${LOGGING_MODE} -ge 1 ]] && echo "This image ends in a breakpoint: " ${currentImageFileName};
-		true
-	else
-		[[ ${LOGGING_MODE} -ge 2 ]] && echo "This image does not end in a breakpoint: " ${currentImageFileName};
-		false
-	fi
+	for colour in ${SPLIT_ON_COLOUR[@]}
+	do
+	    colourDifference=$((${grayMeanValue%.*} - ${colour}))
+        if [[ ${colourDifference#-} -le ${COLOUR_ERROR_TOLERANCE} ]] && [[ ${standardDeviation%.*} -le ${COLOUR_STANDARD_DEVIATION} ]]
+        then
+            [[ ${LOGGING_MODE} -ge 1 ]] && echo "Image ${fileSampling} ends in a breakpoint colour ${colour}";
+            true
+        else
+            [[ ${LOGGING_MODE} -ge 2 ]] && echo "Image ${fileSampling} does not in a breakpoint colour ${colour}";
+            false
+        fi
+	done
 };
 
 # This is a super nasty/slow method because of how many identify calls being made....
@@ -191,38 +198,42 @@ function findBreakPoint {
 		batchEnd=$((rowBeingChecked + outerBatchSize))
 		batchEnd=$(( batchEnd >= currentImageHeight ? currentImageHeight-1 : batchEnd ))
 		batchFileSample=$currentImageFileName"["$currentImageWidth"x1+0+"$rowBeingChecked"]"
-		[[ ${LOGGING_MODE} -ge 2 ]] && echo "Checking batch for possible breakpoint: $batchStart-$batchEnd"
-		if ! fileSampleContainsColour ${batchFileSample} ${SPLIT_ON_COLOUR} ${COLOUR_ERROR_TOLERANCE}
+		[[ ${LOGGING_MODE} -ge 2 ]] && echo "Checking batch for possible breakpoint colours ${SPLIT_ON_COLOUR[@]}: $batchStart-$batchEnd"
+		if ! fileSampleContainsColour ${batchFileSample}
 		then
-			[[ ${LOGGING_MODE} -ge 1 ]] && echo "Colour not found in sample batch $batchStart-$batchEnd, skipping to next batch"
+			[[ ${LOGGING_MODE} -ge 1 ]] && echo "Colours not found in sample batch $batchStart-$batchEnd, skipping to next batch"
 			rowBeingChecked=$((rowBeingChecked+outerBatchSize))
 			continue
 		else
-			[[ ${LOGGING_MODE} -ge 2 ]] && echo "Colour found in sample batch $batchStart-$batchEnd, checking rows for breakpoint"
+			[[ ${LOGGING_MODE} -ge 2 ]] && echo "Colours found in sample batch $batchStart-$batchEnd, checking rows for breakpoint"
 		fi
 
 		for ((i = $rowBeingChecked; i < $batchEnd; i+=$BREAK_POINT_ROW_CHECK_INCREMENTS))
 		do
 			fileSampling=${currentImageFileName}"["${currentImageWidth}"x1+0+"${i}"]"
 			grayMeanValue=$(${IM_IDENTIFY} -format %[mean] ${fileSampling})
-			colourDifference=$((${grayMeanValue%.*} - $SPLIT_ON_COLOUR))
-			#[ ${LOGGING_MODE} -ge 2 ] && echo "Testing if mean gray value $grayMeanValue is within error tolerance $COLOUR_ERROR_TOLERANCE of breakpoint colour $SPLIT_ON_COLOUR, calculating difference: $colourDifference"
-			if [[ ${colourDifference#-} -le ${COLOUR_ERROR_TOLERANCE} ]]
-			then
-				#[ ${LOGGING_MODE} -ge 2 ] && echo "Colour value $grayMeanValue was within tolerance $SPLIT_ON_COLOUR +-$COLOUR_ERROR_TOLERANCE"
-				standardDeviation=$(${IM_IDENTIFY} -format %[standard-deviation] ${fileSampling})
-				if [[ ${standardDeviation%.*} -le ${COLOUR_STANDARD_DEVIATION} ]]
-				then
-					cropFromBottom=$((currentImageHeight-i-1))
-					cropFromTopNextPage=${i}
-					[[ ${LOGGING_MODE} -ge 1 ]] && echo "Found a breakpoint in: "${currentImageFileName}
-					[[ ${LOGGING_MODE} -ge 2 ]] && echo "cropFromBottom: "${cropFromBottom}
-					[[ ${LOGGING_MODE} -ge 2 ]] && echo "cropFromTopNextPage: "${cropFromTopNextPage}
-					return 0
-				else
-					[[ ${LOGGING_MODE} -ge 2 ]] && echo "Colour value $grayMeanValue was within tolerance $SPLIT_ON_COLOUR +-$COLOUR_ERROR_TOLERANCE but standard-deviation was $standardDeviation"
-				fi
-			fi
+            for colour in ${SPLIT_ON_COLOUR[@]}
+            do
+                [[ ${LOGGING_MODE} -ge 1 ]] && echo "Checking row ${i} for breakpoint colour ${colour}";
+                colourDifference=$((${grayMeanValue%.*} - ${colour}))
+                #[ ${LOGGING_MODE} -ge 2 ] && echo "Testing if mean gray value $grayMeanValue is within error tolerance $COLOUR_ERROR_TOLERANCE of breakpoint colour $SPLIT_ON_COLOUR, calculating difference: $colourDifference"
+                if [[ ${colourDifference#-} -le ${COLOUR_ERROR_TOLERANCE} ]]
+                then
+                    #[ ${LOGGING_MODE} -ge 2 ] && echo "Colour value $grayMeanValue was within tolerance $SPLIT_ON_COLOUR +-$COLOUR_ERROR_TOLERANCE"
+                    standardDeviation=$(${IM_IDENTIFY} -format %[standard-deviation] ${fileSampling})
+                    if [[ ${standardDeviation%.*} -le ${COLOUR_STANDARD_DEVIATION} ]]
+                    then
+                        cropFromBottom=$((currentImageHeight-i-1))
+                        cropFromTopNextPage=${i}
+                        [[ ${LOGGING_MODE} -ge 1 ]] && echo "Found a breakpoint colour ${colour} in: "${currentImageFileName}
+                        [[ ${LOGGING_MODE} -ge 2 ]] && echo "cropFromBottom: "${cropFromBottom}
+                        [[ ${LOGGING_MODE} -ge 2 ]] && echo "cropFromTopNextPage: "${cropFromTopNextPage}
+                        return 0
+                    else
+                        [[ ${LOGGING_MODE} -ge 2 ]] && echo "Colour value $grayMeanValue was within tolerance ${colour} +-$COLOUR_ERROR_TOLERANCE but standard-deviation was $standardDeviation"
+                    fi
+                fi
+            done
 		done
 
 		rowBeingChecked=$((rowBeingChecked+outerBatchSize))
@@ -237,23 +248,24 @@ function findBreakPoint {
 
 function fileSampleContainsColour {
 	fileSample=$1
-	colourToTest=$2
-	colourErrorTolerance=$3
 
-	[[ ${LOGGING_MODE} -ge 2 ]] && echo "Checking line for colour $colourToTest using sampling:" ${fileSample};
+	for colour in ${SPLIT_ON_COLOUR[@]}
+	do
+        [[ ${LOGGING_MODE} -ge 1 ]] && echo "Checking for colour ${colour} using sampling:" ${fileSample};
 
-	grayMinValue=$(${IM_IDENTIFY} -format %[min] ${fileSample})
-	grayMaxValue=$(${IM_IDENTIFY} -format %[max] ${fileSample})
-	[[ ${LOGGING_MODE} -ge 2 ]] && echo "File colour range: $grayMinValue-$grayMaxValue";
+        grayMinValue=$(${IM_IDENTIFY} -format %[min] ${fileSample})
+        grayMaxValue=$(${IM_IDENTIFY} -format %[max] ${fileSample})
+        [[ ${LOGGING_MODE} -ge 2 ]] && echo "File colour range: $grayMinValue-$grayMaxValue";
 
-	if [[ $((colourToTest + colourErrorTolerance)) -ge ${grayMinValue} ]] && [[ ${grayMaxValue} -ge $((colourToTest - colourErrorTolerance)) ]]
-	then
-		[[ ${LOGGING_MODE} -ge 2 ]] && echo "File sampling contains breakpoint colour within error tolerance";
-		return 0;
-	else
-		[[ ${LOGGING_MODE} -ge 1 ]] && echo "File sampling did not contain breakpoint colour within error tolerance";
-		return 1;
-	fi
+        if [[ $((colour + COLOUR_ERROR_TOLERANCE)) -ge ${grayMinValue} ]] && [[ ${grayMaxValue} -ge $((colour - COLOUR_ERROR_TOLERANCE)) ]]
+        then
+            [[ ${LOGGING_MODE} -ge 2 ]] && echo "File sampling contains breakpoint colour within error tolerance";
+            return 0;
+        else
+            [[ ${LOGGING_MODE} -ge 1 ]] && echo "File sampling did not contain breakpoint colour within error tolerance";
+            return 1;
+        fi
+	done
 }
 
 function cropFromTopAndBottom {
