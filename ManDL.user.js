@@ -4,6 +4,7 @@
 // @version      0.1
 // @description  Downloads all images already loaded in to the page with a specific partial-source match
 // @author       bajuwa
+// @include      *
 // @grant        GM_download
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -12,10 +13,10 @@
 
 var FILE_NAME_PREFIX = GM_getValue("MANDL_FILE_NAME_PREFIX", "image");
 var FILE_EXTENSION = GM_getValue("MANDL_FILE_EXTENSION", ".jpg");
-var NUM_OF_IMAGES_TO_SKIP = GM_getValue("MANDL_NUM_OF_IMAGES_TO_SKIP", 0);
-var DOWNLOAD_ITERATION_DELAY = GM_getValue("MANDL_DOWNLOAD_ITERATION_DELAY", 200);
-var AUTOSCROLL_PIXELS = GM_getValue("MANDL_AUTOSCROLL_PIXELS", 1000);
-var AUTOSCROLL_MS_INTERVAL = GM_getValue("MANDL_AUTOSCROLL_MS_INTERVAL", 200);
+var NUM_OF_IMAGES_TO_SKIP = parseInt(GM_getValue("MANDL_NUM_OF_IMAGES_TO_SKIP", 0));
+var DOWNLOAD_ITERATION_DELAY = parseInt(GM_getValue("MANDL_DOWNLOAD_ITERATION_DELAY", 200));
+var AUTOSCROLL_PIXELS = parseInt(GM_getValue("MANDL_AUTOSCROLL_PIXELS", 1000));
+var AUTOSCROLL_MS_INTERVAL = parseInt(GM_getValue("MANDL_AUTOSCROLL_MS_INTERVAL", 200));
 
 var ELEMENT_ID_CONFIG_PANEL = "manDlConfigPanel";
 
@@ -88,7 +89,11 @@ function scrollToBottom() {
     console.log("AutoScroll pixels: " + AUTOSCROLL_PIXELS);
     console.log("AutoScroll MS interval: " + AUTOSCROLL_MS_INTERVAL);
     var interval = setInterval( function(){
+        if (window.location.href.includes("ac.qq")) {
+            $("#mainView").scrollTop($("#mainView").scrollTop() + AUTOSCROLL_PIXELS);
+        } else {
             window.scrollBy(0, AUTOSCROLL_PIXELS);
+        }
     }, AUTOSCROLL_MS_INTERVAL);
 }
 
@@ -122,14 +127,16 @@ function findImagesFromSource(sourceHref) {
         return $(".comicDetails img[src*=\"kkmh.com/image\"]");
     } else if (sourceHref.includes("ac.qq")) {
         return $("img[src*=\"manhua_detail\"]");
+    } else if (sourceHref.includes("manhuadui")) {
+        return $("div#images img[src$=jpg]");
     } else {
         console.log("WARNING: Could not determine appropriate scraping criteria, downloading all images");
-        return $("img[src^=jpg]");
+        return $("img[src$=jpg]");
     }
 }
 
 function pad(n, width, z) {
-  z = z || '0';
-  n = n + '';
-  return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+    z = z || '0';
+    n = n + '';
+    return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
 }
