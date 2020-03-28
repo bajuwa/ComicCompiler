@@ -60,6 +60,11 @@ The file extension of your input images and your output page files. This value i
 **Default:** "page"  
 The text that will go at the start of each output page name. The prefix is followed by a 3 digit number (zero-padded page number) and the **File Extension** that was set that matches the input image file types.
 
+### Output Page Starting Number
+**Longhand:** --output-file-starting-number [text]   
+**Default:** 1  
+The number of the first output page.
+
 ### Input Directory
 **Shorthand:** -id [text]   
 **Longhand:** --input-directory [text]   

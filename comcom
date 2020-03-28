@@ -6,6 +6,7 @@ MIN_HEIGHT_PER_PAGE=5000
 INPUT_IMAGE_NAME_PREFIX="image"
 IMAGE_FILE_EXTENSION="jpg"
 OUTPUT_PAGE_NAME_PREFIX="page"
+OUTPUT_PAGE_START_NUMBER=1
 INPUT_DIRECTORY="./"
 MAX_DIRECTORY_DEPTH=1
 OUTPUT_DIRECTORY="./Compiled/"
@@ -55,6 +56,10 @@ case $1 in
     ;;
     -o|--output-file-prefix)
     OUTPUT_PAGE_NAME_PREFIX=$2
+    shift # past argument=value
+    ;;
+    --output-file-starting-number)
+    OUTPUT_PAGE_START_NUMBER=$2
     shift # past argument=value
     ;;
     -id|--input-directory)
@@ -147,10 +152,10 @@ function fileEndsInBreakPoint {
 	standardDeviation=$(${IM_IDENTIFY} -format %[standard-deviation] ${fileSampling})
 	colourDifference=$((${grayMeanValue%.*} - $SPLIT_ON_COLOUR))
 	if [[ ${colourDifference#-} -le ${COLOUR_ERROR_TOLERANCE} ]] && [[ ${standardDeviation%.*} -le ${COLOUR_STANDARD_DEVIATION} ]]
-	then 
+	then
 		[[ ${LOGGING_MODE} -ge 1 ]] && echo "This image ends in a breakpoint: " ${currentImageFileName};
 		true
-	else 
+	else
 		[[ ${LOGGING_MODE} -ge 2 ]] && echo "This image does not end in a breakpoint: " ${currentImageFileName};
 		false
 	fi
@@ -160,7 +165,7 @@ function fileEndsInBreakPoint {
 # Maybe upgrade this to a binary search using fileMayContainBreakPoint?
 function findBreakPoint {
 	[[ ${LOGGING_MODE} -ge 1 ]] && echo "Scanning file for breakpoint: "$currentImageFileName
-	
+
 	outerBatchSize=$((BREAK_POINT_ROW_CHECK_INCREMENTS * BREAK_POINT_ROW_CHECK_BATCH_MULTIPLIER))
 	rowBeingChecked=0;
 	while [[ $rowBeingChecked -lt $currentImageHeight ]]
@@ -179,7 +184,7 @@ function findBreakPoint {
 		else
 			[[ ${LOGGING_MODE} -ge 2 ]] && echo "Colour found in sample batch $batchStart-$batchEnd, checking rows for breakpoint"
 		fi
-		
+
 		for ((i = $rowBeingChecked; i < $batchEnd; i+=$BREAK_POINT_ROW_CHECK_INCREMENTS))
 		do
 			fileSampling=${currentImageFileName}"["${currentImageWidth}"x1+0+"${i}"]"
@@ -187,23 +192,23 @@ function findBreakPoint {
 			colourDifference=$((${grayMeanValue%.*} - $SPLIT_ON_COLOUR))
 			#[ ${LOGGING_MODE} -ge 2 ] && echo "Testing if mean gray value $grayMeanValue is within error tolerance $COLOUR_ERROR_TOLERANCE of breakpoint colour $SPLIT_ON_COLOUR, calculating difference: $colourDifference"
 			if [[ ${colourDifference#-} -le ${COLOUR_ERROR_TOLERANCE} ]]
-			then 
+			then
 				#[ ${LOGGING_MODE} -ge 2 ] && echo "Colour value $grayMeanValue was within tolerance $SPLIT_ON_COLOUR +-$COLOUR_ERROR_TOLERANCE"
 				standardDeviation=$(${IM_IDENTIFY} -format %[standard-deviation] ${fileSampling})
 				if [[ ${standardDeviation%.*} -le ${COLOUR_STANDARD_DEVIATION} ]]
-				then 
+				then
 					cropFromBottom=$((currentImageHeight-i-1))
 					cropFromTopNextPage=${i}
 					[[ ${LOGGING_MODE} -ge 1 ]] && echo "Found a breakpoint in: "${currentImageFileName}
 					[[ ${LOGGING_MODE} -ge 2 ]] && echo "cropFromBottom: "${cropFromBottom}
 					[[ ${LOGGING_MODE} -ge 2 ]] && echo "cropFromTopNextPage: "${cropFromTopNextPage}
 					return 0
-				else 
+				else
 					[[ ${LOGGING_MODE} -ge 2 ]] && echo "Colour value $grayMeanValue was within tolerance $SPLIT_ON_COLOUR +-$COLOUR_ERROR_TOLERANCE but standard-deviation was $standardDeviation"
 				fi
 			fi
 		done
-		
+
 		rowBeingChecked=$((rowBeingChecked+outerBatchSize))
 	done
 
@@ -218,13 +223,13 @@ function fileSampleContainsColour {
 	fileSample=$1
 	colourToTest=$2
 	colourErrorTolerance=$3
-	
+
 	[[ ${LOGGING_MODE} -ge 2 ]] && echo "Checking line for colour $colourToTest using sampling:" ${fileSample};
 
 	grayMinValue=$(${IM_IDENTIFY} -format %[min] ${fileSample})
 	grayMaxValue=$(${IM_IDENTIFY} -format %[max] ${fileSample})
 	[[ ${LOGGING_MODE} -ge 2 ]] && echo "File colour range: $grayMinValue-$grayMaxValue";
-	
+
 	if [[ $((colourToTest + colourErrorTolerance)) -ge ${grayMinValue} ]] && [[ ${grayMaxValue} -ge $((colourToTest - colourErrorTolerance)) ]]
 	then
 		[[ ${LOGGING_MODE} -ge 2 ]] && echo "File sampling contains breakpoint colour within error tolerance";
@@ -239,27 +244,27 @@ function cropFromTopAndBottom {
 	fileToCrop=$1
 	pixelToCropFromTop=$2
 	pixelToCropFromBottom=$3
-	
+
 	[[ ${LOGGING_MODE} -ge 2 ]] && echo "Cropping file $fileToCrop";
 	[[ ${LOGGING_MODE} -ge 2 ]] && echo "pixelToCropFromTop: $pixelToCropFromTop";
 	[[ ${LOGGING_MODE} -ge 2 ]] && echo "pixelToCropFromBottom: $pixelToCropFromBottom";
-	
+
 	pageTotalHeight=$(${IM_IDENTIFY} -format "%h" ${fileToCrop})
 	pageCroppedHeight=$((pageTotalHeight-pixelToCropFromTop-pixelToCropFromBottom))
 	[[ ${LOGGING_MODE} -ge 2 ]] && echo "pageTotalHeight: $pageTotalHeight";
 	[[ ${LOGGING_MODE} -ge 2 ]] && echo "pageCroppedHeight: $pageCroppedHeight";
-	
+
 	cropSampleRange=${currentImageWidth}"x"${pageCroppedHeight}"+0+"${pixelToCropFromTop}
 	[[ ${LOGGING_MODE} -ge 1 ]] && echo "Cropping: $fileToCrop[$cropSampleRange]";
 	${IM_CONVERT} -crop ${cropSampleRange} ${fileToCrop} ${fileToCrop}
-	
+
 	return
 };
 
 function findBatchSizeForNextPage {
 	[[ ${LOGGING_MODE} -ge 1 ]] && echo "Finding batch size for $pageFileName starting at $imageIndex";
 	imageBatchSize=0;
-	
+
 	cumulativePageHeight=0;
 	# find the next page separation spot (test for breakpoint line)
 	while [[ ${imageBatchSize} -lt $((totalImageCount-imageIndex)) ]]
@@ -267,11 +272,11 @@ function findBatchSizeForNextPage {
 		printf "."
 		imageIndexToTest=$((imageIndex+imageBatchSize))
 		currentImageFileName=${imageFileNames[$imageIndexToTest]}
-		
+
 		currentImageWidth=$(${IM_IDENTIFY} -format "%w" ${currentImageFileName})
 		currentImageHeight=$(${IM_IDENTIFY} -format "%h" ${currentImageFileName})
 		[[ ${LOGGING_MODE} -ge 2 ]] && echo "Current image dimensions (WxH): $currentImageWidth x $currentImageHeight";
-		
+
 		# Check if totalHeight + thisImagesHeight > minRequiredHeight
 		# If so, start looking for a breakpoint at the minRequiredHeight - totalHeight
 		# Add next images height to the overall height
@@ -282,7 +287,7 @@ function findBatchSizeForNextPage {
 			if [[ ${BREAKPOINT_DETECTION_MODE} -eq 1 ]]
 			then
 				printf "\r%b" "\033[2K" "Searching for breakpoint in '$currentImageFileName'"
-				if findBreakPoint 
+				if findBreakPoint
 				then
 					break
 				fi
@@ -301,7 +306,7 @@ function findBatchSizeForNextPage {
 };
 
 function combineImages {
-	pageIndex=0;
+	pageIndex=${OUTPUT_PAGE_START_NUMBER};
 	imageIndex=0;
 	totalImageCount=${#imageFileNames[@]};
 
