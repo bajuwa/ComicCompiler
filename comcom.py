@@ -112,20 +112,28 @@ if args.logging_level > 0:
 #   - cumulativePageHeight
 #   - crop values
 
-
-def command(shell_command):
-    process = subprocess.Popen(shell_command, shell=True, close_fds=True, universal_newlines=True,
+# Try to avoid calling command other than imgmag ones in order to prevent cross-os problems
+def _imgmag_command(command):
+    process = subprocess.Popen(command, shell=True, close_fds=True, universal_newlines=True,
                      stdin=subprocess.PIPE, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
     out, err = process.communicate()
     return out
 
 
+def _imgmag_identify(params):
+    return _imgmag_command("identify " + params)
+
+
+def _imgmag_convert(params):
+    return _imgmag_command("convert " + params)
+
+
 def _get_image_width(image_path):
-    return command('identify -format "%w" ' + image_path)
+    return _imgmag_identify('-format "%w" ' + image_path)
 
 
 def _resize_width(target_width, image_path):
-    command("convert {file} -adaptive-resize {width}x {file}".format(file=image_path, width=target_width))
+    _imgmag_convert("{file} -adaptive-resize {width}x {file}".format(file=image_path, width=target_width))
     pass
 
 
