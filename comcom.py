@@ -1,9 +1,12 @@
 #!/usr/bin/python
 
-# import subprocess
 import argparse
+import glob
+import os
+import time
+import shutil
 
-# Initiate the parser
+
 programDescription = "Given a set of images, vertically combines them in to 'pages' where the start/end of the page " \
                      "are solid white (or some other specified colour)."
 parser = argparse.ArgumentParser(description=programDescription)
@@ -72,11 +75,9 @@ if args.debug:
 if args.verbose:
     args.logging_level = 2
 
-if (args.logging_level > 0):
+if args.logging_level > 0:
     print("Running with args: %s" % args)
 
-
-# Verify that imagemagick is installed/accessible
 
 # Possible to do the 'erase line and reprint' logging?
 
@@ -101,29 +102,30 @@ if (args.logging_level > 0):
 #   combineImages
 
 
-# Main program (ie this file) should only contain the following logic, all other methods should be contained elsewhere
+# The actual program....
 
-# if [[ ${#imageFileNames[@]} -eq 0 ]];
-# then
-# echo "Couldn't find any images to combine";
-# else
-# echo "Starting compilation..."
-# start=$(date +%s)
+if shutil.which("magick") is None:
+    print("Couldn't find ImageMagick via the 'magick' command")
+    exit(1)
+
+input_images = sorted(glob.glob((args.input_directory + args.input_file_prefix + "*" + args.extension)))
+
+if len(input_images) == 0:
+    print("Couldn't find any images to combine")
+    exit(1)
+
+print("Starting compilation...")
+start = time.time()
 # ensureDirectory ${OUTPUT_DIRECTORY};
 # ensureConsistentWidth ${OUTPUT_PAGE_WIDTH};
 # combineImages;
-# end=$(date +%s)
-# totalTime=$(($end-$start))
-# echo "Comic Compilation - Complete! (time: "${totalTime}"s)"
-# fi
-#
-# if [[ ${OPEN_ON_COMPLETE} -eq 0 ]]
-# then
-# explorer . &
-# fi
-#
-# if [[ ${CONFIRM_EXIT} -eq 0 ]]
-# then
-# echo ""
-# read -p "Press enter to exit"
-# fi
+end = time.time()
+totalTime = end - start
+print("Comic Compilation - Complete! (time: %ds)" % totalTime)
+
+if args.open:
+    os.system("explorer . &")
+
+if args.exit:
+    input("Press enter to exit")
+    print("")
