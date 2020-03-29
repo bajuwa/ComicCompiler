@@ -49,6 +49,15 @@ parser.add_argument("-C", "--additional-split-on-colour", default=[], type=int, 
 parser.add_argument("-ce", "--colour-error-tolerance", default=0, type=int,
                     help="The error tolerance used when testing whether a specific image/row matches the given "
                          "breakpoint colour")
+parser.add_argument("--exit", action="store_true",
+                    help="If set, when the program finishes compiling it will prompt you to press enter before "
+                         "terminating itself.")
+parser.add_argument("--clean", action="store_true",
+                    help="If set, before the new pages are compiled the program will delete the configured output "
+                         "directory.")
+parser.add_argument("--open", action="store_true",
+                    help="If set, after the new pages are compiled the program will open the directory it was working "
+                         "in via windows explorer.")
 
 parser.add_argument("-l", "--logging-level", default=0, type=int,
                     help="Sets logging level [0 for basic, 1 for debug, 2 for verbose]")
@@ -63,6 +72,58 @@ if args.debug:
 if args.verbose:
     args.logging_level = 2
 
-print("args: %s" % args)
+if (args.logging_level > 0):
+    print("Running with args: %s" % args)
 
 
+# Verify that imagemagick is installed/accessible
+
+# Possible to do the 'erase line and reprint' logging?
+
+# Need to redesign how the data should be gathered/passed around (global vars are bad)
+
+# Object for 'Page' that contains:
+#   - ordered image file names to combine
+#   - cumulativePageHeight
+#   - crop values
+
+# Simple functions to make first + test
+#   findInputImages
+#   ensureDirectory
+#   ensureConsistentWidth
+
+# Complex functions to port
+#   fileEndsInBreakPoint
+#   findBreakPoint
+#   fileSampleContainsColour
+#   cropFromTopAndBottom
+#   findBatchSizeForNextPage
+#   combineImages
+
+
+# Main program (ie this file) should only contain the following logic, all other methods should be contained elsewhere
+
+# if [[ ${#imageFileNames[@]} -eq 0 ]];
+# then
+# echo "Couldn't find any images to combine";
+# else
+# echo "Starting compilation..."
+# start=$(date +%s)
+# ensureDirectory ${OUTPUT_DIRECTORY};
+# ensureConsistentWidth ${OUTPUT_PAGE_WIDTH};
+# combineImages;
+# end=$(date +%s)
+# totalTime=$(($end-$start))
+# echo "Comic Compilation - Complete! (time: "${totalTime}"s)"
+# fi
+#
+# if [[ ${OPEN_ON_COMPLETE} -eq 0 ]]
+# then
+# explorer . &
+# fi
+#
+# if [[ ${CONFIRM_EXIT} -eq 0 ]]
+# then
+# echo ""
+# read -p "Press enter to exit"
+# fi
