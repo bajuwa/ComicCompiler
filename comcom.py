@@ -3,8 +3,29 @@
 import argparse
 import glob
 import os
+import sys
+import subprocess
 import time
 import shutil
+
+
+def _log(message):
+    sys.stdout.write(message + "\n")
+    sys.stdout.flush()
+
+
+def _info(message):
+    _log(message)
+
+
+def _debug(message):
+    if args.logging_level >= 1:
+        _log(message)
+
+
+def _verbose(message):
+    if args.logging_level >= 2:
+        _log(message)
 
 
 programDescription = "Given a set of images, vertically combines them in to 'pages' where the start/end of the page " \
@@ -76,10 +97,13 @@ if args.verbose:
     args.logging_level = 2
 
 if args.logging_level > 0:
-    print("Running with args: %s" % args)
+    _info("Running with args: %s" % args)
+    _info("")
 
 
 # Possible to do the 'erase line and reprint' logging?
+
+# Eventually get a proper document structure...?
 
 # Need to redesign how the data should be gathered/passed around (global vars are bad)
 
@@ -88,15 +112,57 @@ if args.logging_level > 0:
 #   - cumulativePageHeight
 #   - crop values
 
-# Simple functions to make first + test
-#   findInputImages
-#   ensureDirectory
-#   ensureConsistentWidth
+
+def command(shell_command):
+    process = subprocess.Popen(shell_command, shell=True, close_fds=True, universal_newlines=True,
+                     stdin=subprocess.PIPE, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+    out, err = process.communicate()
+    return out
+
+
+def _get_image_width(image_path):
+    return command('identify -format "%w" ' + image_path)
+
+
+def _resize_width(target_width, image_path):
+    command("convert {file} -adaptive-resize {width}x {file}".format(file=image_path, width=target_width))
+    pass
+
+
+def _ensure_consistent_width(target_width, image_paths):
+    if target_width == 0:
+        _debug("No given width, extracting first images width: %s " % image_paths[0])
+        target_width = _get_image_width(image_paths[0])
+
+    _info("Checking input images are target width: " + str(target_width))
+
+    for image_path in image_paths:
+        current_width = _get_image_width(image_path)
+        if current_width != target_width:
+            _verbose("File {file} not target width {target_width}, current width {current_width}"
+                     .format(file=image_path, target_width=target_width, current_width=current_width))
+            _resize_width(target_width, image_path)
+
+    pass
+
+
+def _ensure_directory(output_directory, clean):
+    if clean and os.path.exists(output_directory):
+        shutil.rmtree(output_directory)
+        # We have to wait for rmtree to properly finish before trying to mkdir again
+        while os.path.exists(output_directory):
+            pass
+
+    if not os.path.exists(output_directory):
+        os.mkdir(output_directory)
+
+    pass
+
 
 # Complex functions to port
+#   fileSampleContainsColour
 #   fileEndsInBreakPoint
 #   findBreakPoint
-#   fileSampleContainsColour
 #   cropFromTopAndBottom
 #   findBatchSizeForNextPage
 #   combineImages
@@ -105,27 +171,27 @@ if args.logging_level > 0:
 # The actual program....
 
 if shutil.which("magick") is None:
-    print("Couldn't find ImageMagick via the 'magick' command")
+    _info("Couldn't find ImageMagick via the 'magick' command")
     exit(1)
 
 input_images = sorted(glob.glob((args.input_directory + args.input_file_prefix + "*" + args.extension)))
 
 if len(input_images) == 0:
-    print("Couldn't find any images to combine")
+    _info("Couldn't find any images to combine")
     exit(1)
 
-print("Starting compilation...")
+_info("Starting compilation...")
 start = time.time()
-# ensureDirectory ${OUTPUT_DIRECTORY};
-# ensureConsistentWidth ${OUTPUT_PAGE_WIDTH};
+_ensure_directory(args.output_directory, args.clean)
+_ensure_consistent_width(args.output_file_width, input_images)
 # combineImages;
 end = time.time()
 totalTime = end - start
-print("Comic Compilation - Complete! (time: %ds)" % totalTime)
+_info("Comic Compilation - Complete! (time: %ds)" % totalTime)
 
 if args.open:
     os.system("explorer . &")
 
 if args.exit:
     input("Press enter to exit")
-    print("")
+    _info("")
