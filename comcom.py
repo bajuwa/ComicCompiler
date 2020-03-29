@@ -35,7 +35,7 @@ parser.add_argument("-od", "--output-directory", default="./Compiled/", type=str
                     help="The path to the directory you want to put the new page files in.")
 parser.add_argument("-b", "--breakpoint-detection-mode", default=0, type=int,
                     help="The 'mode' that the script uses to detect where to split up pages. Mode 0 will split pages "
-                         "when an input image ends in a breakpoint colour. Mode 1 will scan throughtout the input "
+                         "when an input image ends in a breakpoint colour. Mode 1 will scan through out the input "
                          "images to find a breakpoint.")
 parser.add_argument("-bi", "--break-points-increment", default=10, type=int,
                     help="When in Breakpoint Detection Mode #1 this value controls how often the script tests a line "
@@ -76,6 +76,25 @@ if args.verbose:
     args.logging_level = 2
 
 
+def _get_input_images():
+    _log_inline("Loading images")
+    images = []
+    image_paths = sorted(glob.glob((args.input_directory + args.input_file_prefix + "*" + args.extension)))
+    for i in range(len(image_paths)):
+        if i % 5 == 0:
+            _log_progress()
+        image = Image()
+        image.path = image_paths[i]
+        image.batch_index = i
+        image.width = _get_image_width(image.path)
+        image.height = _get_image_height(image.path)
+        images.append(image)
+
+    _log_inline("Loaded {img_count} images.".format(img_count=len(images)))
+    _info("")
+    return images
+
+
 def run():
     if shutil.which("magick") is None:
         _info("Couldn't find ImageMagick via the 'magick' command")
@@ -85,18 +104,21 @@ def run():
         _debug("Running with args: %s" % args)
         _debug("")
 
-    input_images = sorted(glob.glob((args.input_directory + args.input_file_prefix + "*" + args.extension)))
-    _verbose("Found images: " + str(input_images))
+    _info("Starting compilation...")
+    start = time.time()
 
-    if len(input_images) == 0:
+    # Get the images we need (based on args)
+    images = _get_input_images()
+    _verbose("Found images: " + str(images))
+
+    if len(images) == 0:
         _info("Couldn't find any images to combine")
         exit(1)
 
-    _info("Starting compilation...")
-    start = time.time()
+    _ensure_consistent_width(args.output_file_width, images)
     _ensure_directory(args.output_directory, args.clean)
-    _ensure_consistent_width(args.output_file_width, input_images)
-    _combine_images(input_images)
+    _combine_images(images)
+
     end = time.time()
     total_time = end - start
     _info("Comic Compilation - Complete! (time: %ds)" % total_time)
@@ -147,17 +169,6 @@ def _log_progress():
         sys.stdout.flush()
 
 
-# Possible to do the 'erase line and reprint' logging?
-
-# Eventually get a proper document structure...?
-
-# Need to redesign how the data should be gathered/passed around (global vars are bad)
-
-# Object for 'Page' that contains:
-#   - ordered image file names to combine
-#   - cumulativePageHeight
-#   - crop values
-
 # Try to avoid calling command other than imgmag ones in order to prevent cross-os problems
 def _imgmag_command(command):
     _verbose("Running command: " + command)
@@ -188,19 +199,19 @@ def _resize_width(target_width, image_path):
     pass
 
 
-def _ensure_consistent_width(target_width, image_paths):
+def _ensure_consistent_width(target_width, images):
     if target_width == 0:
-        _debug("No given width, extracting first images width: %s " % image_paths[0])
-        target_width = _get_image_width(image_paths[0])
+        _debug("No given width, extracting first images width: %s " % images[0])
+        target_width = images[0].width
 
     _info("Checking input images are target width: " + str(target_width))
 
-    for image_path in image_paths:
-        current_width = _get_image_width(image_path)
-        if current_width != target_width:
+    for image in images:
+        if image.width != target_width:
             _verbose("File {file} not target width {target_width}, current width {current_width}"
-                     .format(file=image_path, target_width=target_width, current_width=current_width))
-            _resize_width(target_width, image_path)
+                     .format(file=image.name, target_width=target_width, current_width=image.width))
+            _resize_width(target_width, image.name)
+            image.width = target_width
 
     pass
 
@@ -216,14 +227,6 @@ def _ensure_directory(output_directory, clean):
         os.mkdir(output_directory)
 
     pass
-
-
-def _create_blank_page(page_index, image_index_offset):
-    blank_page = Page()
-    blank_page.name = "{prefix}{number:03d}{extension}".format(prefix=args.output_file_prefix, number=page_index,
-                                                         extension=args.extension)
-    blank_page.image_index_offset = image_index_offset
-    return blank_page
 
 
 def _populate_previous_page(page, previous_page):
@@ -248,18 +251,21 @@ def _define_page(page, input_images):
     pass
 
 
+def _get_image_paths(images):
+    return " ".join(map(lambda image: image.path, images))
+
+
 def _stitch_page(page):
     _verbose("Stitching page: " + str(page))
 
     # -append           : will stitch together the images vertically
     # -colorspace sRGB  : prevents a single white/black image from making the whole page black/white
-    _imgmag_convert("-append {images} -colorspace sRGB {output_dir}{page_name}"
-                    .format(images=" ".join(page.images), output_dir=args.output_directory, page_name=page.name))
+    _imgmag_convert("-append {images} -colorspace sRGB {output_dir}{page_name}".format(
+        images=_get_image_paths(page.images), output_dir=args.output_directory, page_name=page.name))
 
-    image_index_end = (page.image_index_offset + page.image_count() - 1)
     _log_inline("Combined {image_count} images into '{page_name}': {image_start} - {image_end}"
-                .format(image_count=page.image_count(), page_name=page.name, image_start=page.image_index_offset,
-                        image_end=image_index_end))
+                .format(image_count=page.image_count(), page_name=page.name, image_start=page.get_first_image_index(),
+                        image_end=page.get_last_image_index()))
     _info("")
     pass
 
@@ -272,35 +278,33 @@ def _crop_page(page):
     _verbose("Cropping page: " + str(page))
 
     page_file_path = args.output_directory + page.name
-    page_total_height = _get_image_height(page_file_path)
-    page_cropped_height = page_total_height - page.crop_from_top - page.crop_from_bottom
-
-    _verbose("page_total_height: " + str(page_total_height))
-    _verbose("page_cropped_height: " + str(page_cropped_height))
 
     crop_sample_range = "{width}x{height}+0+{top_offset}".format(
-        width=args.output_file_width, height=page_cropped_height, top_offset=page.crop_from_top
+        width=args.output_file_width, height=page.calculate_cropped_height(), top_offset=page.crop_from_top
     )
     _debug("Cropping: {file}[{sample}]".format(file=page_file_path, sample=crop_sample_range))
     _imgmag_convert("-crop {sample} {file} {file}".format(sample=crop_sample_range, file=page_file_path))
     pass
 
 
-def _combine_images(input_images):
+def _combine_images(images):
     image_index = 0
-    total_image_count = len(input_images)
+    total_image_count = len(images)
     pages = []
 
     # Log an empty line to allow the 'inline logging' to have a clean new line anchor
     _info("")
 
     while image_index < total_image_count:
-        page = _create_blank_page(args.output_file_starting_number + len(pages), image_index)
+        page = Page()
+        page.name = "{prefix}{number:03d}{extension}".format(prefix=args.output_file_prefix,
+                                                             number=args.output_file_starting_number + len(pages),
+                                                             extension=args.extension)
         if len(pages) > 1:
-            _populate_previous_page(page, pages[len(pages)-1])
+            _populate_previous_page(page, pages[len(pages) - 1])
         pages.append(page)
 
-        _define_page(page, input_images[image_index:])
+        _define_page(page, images[image_index:])
         _stitch_page(page)
         _crop_page(page)
 
@@ -313,22 +317,35 @@ def _combine_images(input_images):
 
     return pages
 
-# Complex functions to port
-#   fileSampleContainsColour
-#   fileEndsInBreakPoint
-#   findBreakPoint
+
+# Eventually get a proper document structure...?
+
+
+class Image:
+    def __init__(self):
+        self.path = None
+        self.batch_index = None
+        self.width = None
+        self.height = None
+
+    def __str__(self):
+        return "Image{" \
+               "path = " + self.path + \
+               ", batch_index = " + str(self.batch_index) + \
+               ", width = " + str(self.width) + \
+               ", height = " + str(self.height) + \
+               "}"
 
 
 class Page:
     def __init__(self):
         self.name = ""
         self.images = []
-        self.image_index_offset = 0
         self.crop_from_top = 0
         self.crop_from_bottom = 0
 
-    def add_image(self, image_path):
-        self.images.append(image_path)
+    def add_image(self, image: Image):
+        self.images.append(image)
         pass
 
     def image_count(self):
@@ -339,11 +356,26 @@ class Page:
             return self.images[self.image_count() - 1]
         return None
 
+    def get_first_image_index(self):
+        if self.image_count() > 0:
+            return self.images[0].batch_index
+        return None
+
+    def get_last_image_index(self):
+        if self.image_count() > 0:
+            return self.images[self.image_count()-1].batch_index
+        return None
+
+    def calculate_uncropped_height(self):
+        return sum(map(lambda image: image.height, self.images))
+
+    def calculate_cropped_height(self):
+        return self.calculate_uncropped_height() - self.crop_from_bottom - self.crop_from_top
+
     def __str__(self):
         return "Page{" \
                "name = " + self.name + \
                ", image_count = " + str(self.image_count()) + \
-               ", image_index_offset = " + str(self.image_index_offset) + \
                ", crop_from_top = " + str(self.crop_from_top) + \
                ", crop_from_bottom = " + str(self.crop_from_bottom) + \
                "}"
