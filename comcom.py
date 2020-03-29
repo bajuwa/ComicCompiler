@@ -109,7 +109,7 @@ def run():
 
     # Get the images we need (based on args)
     images = _get_input_images()
-    _verbose("Found images: " + str(images))
+    _verbose("Found images: " + " ".join(map(lambda image: str(image), images)))
 
     if len(images) == 0:
         _info("Couldn't find any images to combine")
@@ -137,18 +137,22 @@ def _log(message):
     sys.stdout.flush()
 
 
+def _log_level(level, message):
+    if args.logging_level >= level:
+        sys.stdout.write(message + "\n")
+        sys.stdout.flush()
+
+
 def _info(message):
-    _log(message)
+    _log_level(0, message)
 
 
 def _debug(message):
-    if args.logging_level >= 1:
-        _log(message)
+    _log_level(1, message)
 
 
 def _verbose(message):
-    if args.logging_level >= 2:
-        _log(message)
+    _log_level(2, message)
 
 
 def _log_inline(message):
@@ -171,7 +175,7 @@ def _log_progress():
 
 # Try to avoid calling command other than imgmag ones in order to prevent cross-os problems
 def _imgmag_command(command):
-    _verbose("Running command: " + command)
+    _log_level(3, "Running command: " + command)
     process = subprocess.Popen(command, shell=True, close_fds=True, universal_newlines=True,
                                stdin=subprocess.PIPE, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
     out, err = process.communicate()
@@ -229,25 +233,40 @@ def _ensure_directory(output_directory, clean):
     pass
 
 
-def _populate_previous_page(page, previous_page):
-    if previous_page.crop_from_bottom > 0:
-        page.crop_from_top = previous_page.crop_from_bottom
-        if previous_page.image_count > 0:
-            page.add_image(previous_page.get_last_image)
-    pass
+def file_ends_in_breakpoint():
+    return True  # temp, should be calculate
 
 
-def _define_page(page, input_images):
+def _define_page(page, images):
     _log_inline("Finding images to combine into '{0}'".format(page.name))
-    page.add_image(input_images[0]) # temp for debugging, fill in later
-    _log_progress()
-    _log_progress()
-    _log_progress()
-    _log_progress()
-    _log_progress()
-    _log_progress()
-    _log_progress()
-    _log_progress()
+
+    for image in images:
+        _log_progress()
+        _verbose("Current image : " + str(image))
+
+        page.add_image(image)
+
+        # Check if totalHeight + thisImagesHeight > minRequiredHeight
+        # If so, start looking for a breakpoint at the minRequiredHeight - totalHeight
+        # Add next images height to the overall height
+        # If a breakpoint found, store cropFromBottom + cropFromTop for later and break loop
+        current_height = page.calculate_cropped_height()
+        if current_height < args.min_height_per_page:
+            _verbose("Haven't reach min page height {min_height}, current height: {current_height}"
+                     .format(min_height=args.min_height_per_page, current_height=current_height))
+            continue
+
+        _debug("Reached min page height {min_height}, checking for breakpoint in {image}"
+               .format(min_height=args.min_height_per_page, image=image.path))
+        if args.breakpoint_detection_mode == 1:
+            _log_inline("Searching for breakpoint in '{0}'".format(image.path))
+            breakpoint_row = 200  # temp, should be: find_breakpoint(image)
+            if breakpoint_row >= 0:
+                page.crop_from_bottom = image.height - breakpoint_row
+                return
+        else:
+            if file_ends_in_breakpoint():
+                return
     pass
 
 
@@ -301,7 +320,7 @@ def _combine_images(images):
                                                              number=args.output_file_starting_number + len(pages),
                                                              extension=args.extension)
         if len(pages) > 1:
-            _populate_previous_page(page, pages[len(pages) - 1])
+            page.crop_from_top = pages[len(pages) - 1].crop_from_bottom
         pages.append(page)
 
         _define_page(page, images[image_index:])
