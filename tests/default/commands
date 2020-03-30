@@ -1,5 +1,5 @@
 Command:
-> comcom
+> python ../../comcom.py
 Expected Output:
 - A series of pages that don't cut through bubbles/text but do cut on available whitespace between panels
 - 3-4 pages
