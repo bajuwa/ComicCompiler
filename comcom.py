@@ -43,7 +43,7 @@ parser.add_argument("-bi", "--break-points-increment", default=10, type=int,
 parser.add_argument("-bm", "--break-points-multiplier", default=20, type=int,
                     help="When in Breakpoint Detection Mode #1 this value controls how large of a vertical area is "
                          "pre-tested for a breakpoint before iterating over rows via Breakpoint Row Check Increments.")
-parser.add_argument("-c", "--split-on-colour", default=[0, 65355], type=int, nargs="+",
+parser.add_argument("-c", "--split-on-colour", default=[0, 65535], type=int, nargs="+",
                     help="The list of decimal notation colours you want to split on. Use 65535 for white, 0 for black, "
                          "or any number in that range for your intended colour.")
 parser.add_argument("-C", "--additional-split-on-colour", default=[], type=int, nargs="+",
@@ -52,6 +52,8 @@ parser.add_argument("-C", "--additional-split-on-colour", default=[], type=int, 
 parser.add_argument("-ce", "--colour-error-tolerance", default=0, type=int,
                     help="The error tolerance used when testing whether a specific image/row matches the given "
                          "breakpoint colour")
+parser.add_argument("-csd", "--colour-standard-deviation", default=0, type=int,
+                    help="The maximum allowed standard deviation in colour values when testing for a breakpoint.")
 parser.add_argument("--exit", action="store_true",
                     help="If set, when the program finishes compiling it will prompt you to press enter before "
                          "terminating itself.")
@@ -183,11 +185,11 @@ def _imgmag_command(command):
 
 
 def _imgmag_identify(params):
-    return _imgmag_command("identify " + params)
+    return _imgmag_command("magick identify " + params)
 
 
 def _imgmag_convert(params):
-    return _imgmag_command("convert " + params)
+    return _imgmag_command("magick convert " + params)
 
 
 def _get_image_width(image_path):
@@ -196,6 +198,14 @@ def _get_image_width(image_path):
 
 def _get_image_height(image_path):
     return int(_imgmag_identify('-format "%h" ' + image_path))
+
+
+def _get_image_gray_mean(image_path):
+    return round(float(_imgmag_identify('-format %[mean] ' + image_path)))
+
+
+def _get_image_standard_deviation(image_path):
+    return round(float(_imgmag_identify('-format %[standard-deviation] ' + image_path)))
 
 
 def _resize_width(target_width, image_path):
@@ -233,8 +243,27 @@ def _ensure_directory(output_directory, clean):
     pass
 
 
-def file_ends_in_breakpoint():
-    return True  # temp, should be calculate
+def ends_in_breakpoint(image):
+    file_sample = "{file_name}[{width}x1+0+{height}]".format(file_name=image.path,
+                                                             width=image.width,
+                                                             height=image.height-1)
+    gray_mean_value = _get_image_gray_mean(file_sample)
+    standard_deviation = _get_image_standard_deviation(file_sample)
+
+    for colour in args.split_on_colour:
+        colour_difference = int(gray_mean_value) - int(colour)
+        if abs(colour_difference) <= args.colour_error_tolerance \
+                and standard_deviation <= args.colour_standard_deviation:
+            _debug("Image {file_sample} ends in a breakpoint colour {colour}".format(file_sample=file_sample,
+                                                                                     colour=colour))
+            return True
+        else:
+            _verbose("Image {file_sample} does not end in a breakpoint colour {colour} (found gray mean value "
+                     "{gray_mean} and standard deviation {standard_deviation})"
+                     .format(file_sample=file_sample, colour=colour,
+                             gray_mean=gray_mean_value, standard_deviation=standard_deviation))
+
+    return False
 
 
 def _define_page(page, images):
@@ -265,7 +294,7 @@ def _define_page(page, images):
                 page.crop_from_bottom = image.height - breakpoint_row
                 return
         else:
-            if file_ends_in_breakpoint():
+            if ends_in_breakpoint(image):
                 return
     pass
 
