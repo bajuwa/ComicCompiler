@@ -293,44 +293,42 @@ def sample_contains_breakpoint_colour(file_sample):
     return False
 
 
-def find_breakpoint(image):
-    _debug("Scanning file for breakpoint: " + image.path)
+def find_breakpoint(image, offset):
+    _debug("Scanning file " + image.path + " for breakpoint with offset " + str(offset))
 
     outer_batch_size = args.break_points_increment * args.break_points_multiplier
-    row_being_checked = 0
-    batch_end = 0
+    batch_end = offset
     while batch_end < image.height - 1:
         _log_progress()
-        batch_start = row_being_checked
-        batch_end = min(row_being_checked + outer_batch_size, image.height - 1)
+        batch_start = batch_end
+        batch_end = min(batch_start + outer_batch_size, image.height - 1)
         batch_file_sample = "{file}[{width}x1+0+{row}]"\
-            .format(file=image.path, width=image.width-1, row=row_being_checked)
+            .format(file=image.path, width=image.width-1, row=batch_start)
         _verbose("Checking batch for possible breakpoint colours {colours}: {start}-{end}"
                  .format(colours=args.split_on_colour, start=batch_start, end=batch_end))
 
         if not sample_contains_breakpoint_colour(batch_file_sample):
             _debug("Colours not found in sample batch {start}-{end}, skipping to next batch"
                    .format(start=batch_start, end=batch_end))
-            row_being_checked = row_being_checked + outer_batch_size
             continue
         else:
             _verbose("Colours found in sample batch {start}-{end}, checking rows for breakpoint"
                      .format(start=batch_start, end=batch_end))
 
-        for row_being_checked in range(batch_start, batch_end, args.break_points_increment):
+        for index in range(batch_start, batch_end, args.break_points_increment):
             file_sampling = "{file}[{width}x1+0+{row}]"\
-                .format(file=image.path, width=image.width-1, row=row_being_checked)
+                .format(file=image.path, width=image.width-1, row=index)
             gray_mean_value = _get_image_gray_mean(file_sampling)
             for colour in args.split_on_colour:
-                _verbose("Checking row {i} for breakpoint colour {colour}".format(i=row_being_checked, colour=colour))
+                _verbose("Checking row {i} for breakpoint colour {colour}".format(i=index, colour=colour))
                 colour_difference = gray_mean_value - colour
 
                 if abs(colour_difference) <= args.colour_error_tolerance:
                     standard_deviation = _get_image_standard_deviation(file_sampling)
                     if standard_deviation <= args.colour_standard_deviation:
                         _debug("Found a breakpoint colour {colour} in {image_name} at row {row}"
-                               .format(colour=colour, image_name=image.path, row=row_being_checked))
-                        return row_being_checked
+                               .format(colour=colour, image_name=image.path, row=index))
+                        return index
                     else:
                         _verbose("Colour value {gray_mean} was within tolerance {colour} "
                                  "+-{colour_error} but standard-deviation was {standard_deviation}"
@@ -352,6 +350,10 @@ def _define_page(page, images):
 
         page.add_image(image)
 
+        # should probably look at having this be the area for 'orphan adoption'
+        if image == images[len(images)-1]:
+            continue
+
         # Check if totalHeight + thisImagesHeight > minRequiredHeight
         # If so, start looking for a breakpoint at the minRequiredHeight - totalHeight
         # Add next images height to the overall height
@@ -366,7 +368,9 @@ def _define_page(page, images):
                .format(min_height=args.min_height_per_page, image=image.path))
         if args.breakpoint_detection_mode == 1:
             _log_inline("Searching for breakpoint in '{0}'".format(image.path))
-            breakpoint_row = find_breakpoint(image)
+            excess_height = page.calculate_uncropped_height() - page.crop_from_top - args.min_height_per_page
+            offset = image.height - excess_height
+            breakpoint_row = find_breakpoint(image, max(0, offset))
             if breakpoint_row >= 0:
                 page.crop_from_bottom = image.height - breakpoint_row
                 return
