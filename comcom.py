@@ -200,8 +200,16 @@ def _get_image_height(image_path):
     return int(_imgmag_identify('-format "%h" ' + image_path))
 
 
+def _get_image_gray_min(image_path):
+    return round(float(_imgmag_identify('-format %[min] ' + image_path)))
+
+
 def _get_image_gray_mean(image_path):
     return round(float(_imgmag_identify('-format %[mean] ' + image_path)))
+
+
+def _get_image_gray_max(image_path):
+    return round(float(_imgmag_identify('-format %[max] ' + image_path)))
 
 
 def _get_image_standard_deviation(image_path):
@@ -245,7 +253,7 @@ def _ensure_directory(output_directory, clean):
 
 def ends_in_breakpoint(image):
     file_sample = "{file_name}[{width}x1+0+{height}]".format(file_name=image.path,
-                                                             width=image.width,
+                                                             width=image.width-1,
                                                              height=image.height-1)
     gray_mean_value = _get_image_gray_mean(file_sample)
     standard_deviation = _get_image_standard_deviation(file_sample)
@@ -265,6 +273,75 @@ def ends_in_breakpoint(image):
 
     return False
 
+
+def sample_contains_breakpoint_colour(file_sample):
+    for colour in args.split_on_colour:
+        _debug("Checking for colour {colour} using sampling: {file_sample}"
+               .format(colour=colour, file_sample=file_sample))
+
+        gray_min_value = _get_image_gray_min(file_sample)
+        gray_max_value = _get_image_gray_max(file_sample)
+        _verbose("File colour range: {min}-{max}".format(min=gray_min_value, max=gray_max_value))
+
+        if colour + args.colour_error_tolerance >= gray_min_value \
+                and gray_max_value >= colour - args.colour_error_tolerance:
+            _verbose("File sampling contains breakpoint colour within error tolerance")
+            return True
+        else:
+            _debug("File sampling did not contain breakpoint colour within error tolerance")
+
+    return False
+
+
+def find_breakpoint(image):
+    _debug("Scanning file for breakpoint: " + image.path)
+
+    outer_batch_size = args.break_points_increment * args.break_points_multiplier
+    row_being_checked = 0
+    batch_end = 0
+    while batch_end < image.height - 1:
+        _log_progress()
+        batch_start = row_being_checked
+        batch_end = min(row_being_checked + outer_batch_size, image.height - 1)
+        batch_file_sample = "{file}[{width}x1+0+{row}]"\
+            .format(file=image.path, width=image.width-1, row=row_being_checked)
+        _verbose("Checking batch for possible breakpoint colours {colours}: {start}-{end}"
+                 .format(colours=args.split_on_colour, start=batch_start, end=batch_end))
+
+        if not sample_contains_breakpoint_colour(batch_file_sample):
+            _debug("Colours not found in sample batch {start}-{end}, skipping to next batch"
+                   .format(start=batch_start, end=batch_end))
+            row_being_checked = row_being_checked + outer_batch_size
+            continue
+        else:
+            _verbose("Colours found in sample batch {start}-{end}, checking rows for breakpoint"
+                     .format(start=batch_start, end=batch_end))
+
+        for row_being_checked in range(batch_start, batch_end, args.break_points_increment):
+            file_sampling = "{file}[{width}x1+0+{row}]"\
+                .format(file=image.path, width=image.width-1, row=row_being_checked)
+            gray_mean_value = _get_image_gray_mean(file_sampling)
+            for colour in args.split_on_colour:
+                _verbose("Checking row {i} for breakpoint colour {colour}".format(i=row_being_checked, colour=colour))
+                colour_difference = gray_mean_value - colour
+
+                if abs(colour_difference) <= args.colour_error_tolerance:
+                    standard_deviation = _get_image_standard_deviation(file_sampling)
+                    if standard_deviation <= args.colour_standard_deviation:
+                        _debug("Found a breakpoint colour {colour} in {image_name} at row {row}"
+                               .format(colour=colour, image_name=image.path, row=row_being_checked))
+                        return row_being_checked
+                    else:
+                        _verbose("Colour value {gray_mean} was within tolerance {colour} "
+                                 "+-{colour_error} but standard-deviation was {standard_deviation}"
+                                 .format(gray_mean=gray_mean_value, colour=colour,
+                                         colour_error=args.colour_error_tolerance, standard_deviation=standard_deviation
+                                         ))
+
+    # If we couldn't find a breakpoint, then return 0's
+    _verbose("Could not find a breakpoint in: " + image.path)
+    return -1
+    
 
 def _define_page(page, images):
     _log_inline("Finding images to combine into '{0}'".format(page.name))
@@ -289,7 +366,7 @@ def _define_page(page, images):
                .format(min_height=args.min_height_per_page, image=image.path))
         if args.breakpoint_detection_mode == 1:
             _log_inline("Searching for breakpoint in '{0}'".format(image.path))
-            breakpoint_row = 200  # temp, should be: find_breakpoint(image)
+            breakpoint_row = find_breakpoint(image)
             if breakpoint_row >= 0:
                 page.crop_from_bottom = image.height - breakpoint_row
                 return
@@ -348,8 +425,11 @@ def _combine_images(images):
         page.name = "{prefix}{number:03d}{extension}".format(prefix=args.output_file_prefix,
                                                              number=args.output_file_starting_number + len(pages),
                                                              extension=args.extension)
-        if len(pages) > 1:
-            page.crop_from_top = pages[len(pages) - 1].crop_from_bottom
+        if len(pages) > 0:
+            previous_page = pages[len(pages) - 1]
+            if previous_page.crop_from_bottom > 0:
+                page.crop_from_top = previous_page.get_last_image().height - previous_page.crop_from_bottom
+
         pages.append(page)
 
         _define_page(page, images[image_index:])

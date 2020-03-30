@@ -1,5 +1,5 @@
 Command:
-> comcom -m 1
+> python ../../comcom.py -b 1
 Expected Output:
 - A series of pages that don't cut through bubbles/text but do cut on available whitespace between panels
 Common Error Output:
