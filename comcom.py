@@ -231,8 +231,8 @@ def _ensure_consistent_width(target_width, images):
     for image in images:
         if image.width != target_width:
             _verbose("File {file} not target width {target_width}, current width {current_width}"
-                     .format(file=image.name, target_width=target_width, current_width=image.width))
-            _resize_width(target_width, image.name)
+                     .format(file=image.path, target_width=target_width, current_width=image.width))
+            _resize_width(target_width, image.path)
             image.width = target_width
 
     pass
