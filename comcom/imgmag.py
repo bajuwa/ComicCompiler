@@ -57,8 +57,12 @@ def combine_vertically(input_image_paths, output_image_path):
     pass
 
 
-def crop_inplace(crop_sample_range, page_file_path):
-    _convert("-crop {sample} {file} {file}".format(sample=crop_sample_range, file=page_file_path))
+def crop_inplace(file, width, height, top_offset):
+    crop_sample_range = "{width}x{height}+0+{top_offset}".format(
+        width=width, height=height, top_offset=top_offset
+    )
+    logger.debug("Cropping: {file}[{sample}]".format(file=file, sample=crop_sample_range))
+    _convert("-crop {sample} {file} {file}".format(sample=crop_sample_range, file=file))
     pass
 
 
@@ -79,10 +83,7 @@ def ensure_consistent_width(target_width, images):
     pass
 
 
-def ends_in_breakpoint(image, split_on_colour, colour_error_tolerance, colour_standard_deviation):
-    file_sample = "{file_name}[{width}x1+0+{height}]".format(file_name=image.path,
-                                                             width=image.width-1,
-                                                             height=image.height-1)
+def sample_is_colour(file_sample, split_on_colour, colour_error_tolerance, colour_standard_deviation):
     gray_mean_value = get_image_gray_mean(file_sample)
     standard_deviation = get_image_standard_deviation(file_sample)
 
@@ -121,8 +122,15 @@ def sample_contains_colour(file_sample, split_on_colour, colour_error_tolerance)
     return False
 
 
-def find_breakpoint(image, offset, batch_size, row_check_increment,
-                    split_on_colour, colour_error_tolerance, colour_standard_deviation):
+def image_bottom_row_is_colour(image, split_on_colour, colour_error_tolerance, colour_standard_deviation):
+    file_sample = "{file_name}[{width}x1+0+{height}]".format(file_name=image.path,
+                                                             width=image.width-1,
+                                                             height=image.height-1)
+    return sample_is_colour(file_sample, split_on_colour, colour_error_tolerance, colour_standard_deviation)
+
+
+def find_solid_row_of_colour(image, offset, batch_size, row_check_increment,
+                             split_on_colour, colour_error_tolerance, colour_standard_deviation):
     logger.debug("Scanning file " + image.path + " for breakpoint with offset " + str(offset))
 
     batch_end = offset

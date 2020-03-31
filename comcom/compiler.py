@@ -8,12 +8,12 @@ from . import entities
 from . import logger
 
 
-def run(args):
+def run(args=entities.Arguments()):
     logger.logging_level = args.logging_level
 
     if shutil.which("magick") is None:
         logger.info("Couldn't find ImageMagick via the 'magick' command")
-        exit(1)
+        return
 
     logger.debug("Running with args: %s" % args)
     logger.debug("")
@@ -27,14 +27,14 @@ def run(args):
 
     if len(images) == 0:
         logger.info("Couldn't find any images to combine")
-        exit(1)
+        return
 
     imgmag.ensure_consistent_width(args.output_file_width, images)
     _ensure_directory(args.output_directory, args.clean)
-    _combine_images(images, args.output_file_prefix, args.output_file_starting_number, args.extension,
-                    args.min_height_per_page, args.breakpoint_detection_mode, args.split_on_colour,
-                    args.colour_error_tolerance, args.colour_standard_deviation, args.output_directory,
-                    args.output_file_width, args.break_points_increment, args.break_points_multiplier)
+    _combine_images(images, args.output_directory, args.output_file_prefix, args.output_file_starting_number,
+                    args.extension, args.min_height_per_page, args.output_file_width, args.breakpoint_detection_mode,
+                    args.break_points_increment, args.break_points_multiplier, args.split_on_colour,
+                    args.colour_error_tolerance, args.colour_standard_deviation)
 
     end = time.time()
     total_time = end - start
@@ -86,8 +86,8 @@ def _find_breakpoint(page, image, min_height_per_page, break_points_increment, b
     excess_height = page.calculate_uncropped_height() - page.crop_from_top - min_height_per_page
     offset = image.height - excess_height
     batch_sample_size = break_points_increment * break_points_multiplier
-    return imgmag.find_breakpoint(image, max(0, offset), batch_sample_size, break_points_increment,
-                                  split_on_colour, colour_error_tolerance, colour_standard_deviation)
+    return imgmag.find_solid_row_of_colour(image, max(0, offset), batch_sample_size, break_points_increment,
+                                           split_on_colour, colour_error_tolerance, colour_standard_deviation)
 
 
 def _define_page(page, images, min_height_per_page, breakpoint_detection_mode, split_on_colour,
@@ -126,8 +126,8 @@ def _define_page(page, images, min_height_per_page, breakpoint_detection_mode, s
                 page.crop_from_bottom = image.height - breakpoint_row
                 return
         else:
-            if imgmag.ends_in_breakpoint(image, split_on_colour, colour_error_tolerance,
-                                         colour_standard_deviation):
+            if imgmag.image_bottom_row_is_colour(image, split_on_colour, colour_error_tolerance,
+                                                 colour_standard_deviation):
                 return
     pass
 
@@ -155,19 +155,14 @@ def _crop_page(page, output_file_width, output_directory):
 
     logger.verbose("Cropping page: " + str(page))
 
-    page_file_path = output_directory + page.name
-
-    crop_sample_range = "{width}x{height}+0+{top_offset}".format(
-        width=output_file_width, height=page.calculate_cropped_height(), top_offset=page.crop_from_top
-    )
-    logger.debug("Cropping: {file}[{sample}]".format(file=page_file_path, sample=crop_sample_range))
-    imgmag.crop_inplace(crop_sample_range, page_file_path)
+    imgmag.crop_inplace(output_directory + page.name, output_file_width, page.calculate_cropped_height(),
+                        page.crop_from_top)
     pass
 
 
-def _combine_images(images, output_file_prefix, output_file_starting_number, extension, min_height_per_page,
-                    breakpoint_detection_mode, split_on_colour, colour_error_tolerance, colour_standard_deviation,
-                    output_directory, output_file_width, break_points_increment, break_points_multiplier):
+def _combine_images(images, output_directory, output_file_prefix, output_file_starting_number, extension,
+                    min_height_per_page, output_file_width, breakpoint_detection_mode, break_points_increment,
+                    break_points_multiplier, split_on_colour, colour_error_tolerance, colour_standard_deviation):
     image_index = 0
     total_image_count = len(images)
     pages = []
