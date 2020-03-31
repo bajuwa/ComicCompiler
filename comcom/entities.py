@@ -19,6 +19,29 @@ class Arguments:
     output_file_prefix = "page"
     output_file_starting_number = 1
 
+    def __str__(self):
+        return "Arguments{" \
+                "logging_level = " + str(self.logging_level) + \
+                ", input_directory = " + str(self.input_directory) + \
+                ", input_file_prefix = " + str(self.input_file_prefix) + \
+                ", extension = " + str(self.extension) + \
+                ", output_file_width = " + str(self.output_file_width) + \
+                ", output_directory = " + str(self.output_directory) + \
+                ", split_on_colour = " + str(self.split_on_colour) + \
+                ", colour_error_tolerance = " + str(self.colour_error_tolerance) + \
+                ", colour_standard_deviation = " + str(self.colour_standard_deviation) + \
+                ", breakpoint_detection_mode = " + str(self.breakpoint_detection_mode) + \
+                ", break_points_increment = " + str(self.break_points_increment) + \
+                ", break_points_multiplier = " + str(self.break_points_multiplier) + \
+                ", min_height_per_page = " + str(self.min_height_per_page) + \
+                ", output_file_prefix = " + str(self.output_file_prefix) + \
+                ", output_file_starting_number = " + str(self.output_file_starting_number) + \
+                ", clean = " + str(self.clean) + \
+                ", open = " + str(self.open) + \
+                ", exit = " + str(self.exit) + \
+               "}"
+
+
 class Image:
     def __init__(self):
         self.path = None
