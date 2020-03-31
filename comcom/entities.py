@@ -1,4 +1,24 @@
 
+class Arguments:
+    logging_level = 1
+    input_directory = "./"
+    input_file_prefix = "image"
+    extension = ".jpg"
+    output_file_width = 0
+    output_directory = "./Compiled/"
+    clean = False
+    open = False
+    exit = False
+    split_on_colour = [0, 65535]
+    colour_error_tolerance = 0
+    colour_standard_deviation = 0
+    break_points_increment = 10
+    break_points_multiplier = 20
+    min_height_per_page = 5000
+    breakpoint_detection_mode = 0
+    output_file_prefix = "page"
+    output_file_starting_number = 1
+
 class Image:
     def __init__(self):
         self.path = None
