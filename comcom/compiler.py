@@ -3,9 +3,9 @@ import time
 import shutil
 import glob
 
-from comcom import imgmag
-from comcom import entities
-from comcom import logger
+from . import imgmag
+from . import entities
+from . import logger
 
 
 def run(args):
