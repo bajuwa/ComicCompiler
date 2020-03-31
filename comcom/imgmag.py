@@ -57,7 +57,7 @@ def combine_vertically(input_image_paths, output_image_path):
     pass
 
 
-def crop_inplace(file, width, height, top_offset):
+def crop_in_place(file, width, height, top_offset):
     crop_sample_range = "{width}x{height}+0+{top_offset}".format(
         width=width, height=height, top_offset=top_offset
     )

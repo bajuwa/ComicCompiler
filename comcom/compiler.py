@@ -155,8 +155,8 @@ def _crop_page(page, output_file_width, output_directory):
 
     logger.verbose("Cropping page: " + str(page))
 
-    imgmag.crop_inplace(output_directory + page.name, output_file_width, page.calculate_cropped_height(),
-                        page.crop_from_top)
+    imgmag.crop_in_place(output_directory + page.name, output_file_width, page.calculate_cropped_height(),
+                         page.crop_from_top)
     pass
 
 
