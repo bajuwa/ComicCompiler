@@ -1,8 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import argparse
 
-from comcom import compiler
+from modules import compiler
 
 parser = argparse.ArgumentParser(description="Given a set of images, vertically combines them in to 'pages' where the "
                                              "start/end of the page are solid white (or some other specified colour).")
