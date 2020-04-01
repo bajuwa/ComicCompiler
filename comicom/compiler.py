@@ -44,10 +44,14 @@ def run(args):
 
     end = time.time()
     total_time = end - start
+    logger.info("")
     logger.info("Comic Compilation - Complete! (time: %ds)" % total_time)
 
     if args.open:
-        os.system("explorer . &")
+        if args.output_directory.startswith("./"):
+            os.startfile(os.path.dirname(os.path.realpath('__file__')) + args.output_directory[1:])
+        else:
+            os.startfile(args.output_directory)
 
     if args.exit:
         input("Press enter to exit")
