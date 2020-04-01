@@ -3,6 +3,7 @@ import sys
 
 from . import arguments
 from . import compiler
+from . import logger
 
 
 class MainWindow(tk.Frame):
@@ -64,9 +65,9 @@ class StdoutRedirector(object):
 
     def write(self, string):
         self.text_space.configure(state='normal')
-        self.text_space.insert('end', string)
+        self.text_space.insert('end', string.replace(logger.delete_line_string, "\n"))
         self.text_space.see('end')
         self.text_space.configure(state='disabled')
 
     def flush(self):
-        pass
+        self.text_space.update_idletasks()

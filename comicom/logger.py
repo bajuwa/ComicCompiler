@@ -2,6 +2,7 @@ import sys
 
 
 logging_level = 0
+delete_line_string = "\r%b\033[2K"
 
 
 def _log(message):
@@ -28,7 +29,7 @@ def verbose(message):
 
 def inline(message):
     if logging_level == 0:
-        sys.stdout.write("\r%b\033[2K")
+        sys.stdout.write(delete_line_string)
 
     sys.stdout.write(message)
 

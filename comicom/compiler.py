@@ -8,11 +8,17 @@ from . import entities
 from . import logger
 
 
+image_magick_error = "Couldn't find ImageMagick via the 'magick' command.\n" \
+                     "ImageMagick version 7+ can be installed from: \n" \
+                     "https://imagemagick.org/script/download.php \n\n" \
+                     "After installing, make sure to close and reopen Comic Compiler before trying again."
+
+
 def run(args):
     logger.logging_level = args.logging_level
 
     if shutil.which("magick") is None:
-        logger.info("Couldn't find ImageMagick via the 'magick' command")
+        logger.info(image_magick_error)
         return
 
     logger.debug("Running with args: %s" % args)
