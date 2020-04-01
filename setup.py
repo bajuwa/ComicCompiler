@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='comicom',
-    version='1.0.dev5',
+    version='1.0',
     scripts=['comicom.py', 'comgui-launcher.py'],
     author="bajuwa",
     author_email="justcallmebaj@gmail.com",
