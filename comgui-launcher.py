@@ -2,8 +2,11 @@
 
 import tkinter
 
-from modules import comgui
+from comicom import comgui
 
-window = tkinter.Tk()
-comgui = comgui.MainWindow(window)
-window.mainloop()
+
+# execute only if run as a script
+if __name__ == "__main__":
+    window = tkinter.Tk()
+    comgui = comgui.MainWindow(window)
+    window.mainloop()

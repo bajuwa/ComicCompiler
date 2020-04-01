@@ -4,9 +4,9 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name='comic-compiler',
-    version='1.0.dev1',
-    scripts=['comic-compiler'],
+    name='comicom',
+    version='1.0.dev5',
+    scripts=['comicom.py', 'comgui-launcher.py'],
     author="bajuwa",
     author_email="justcallmebaj@gmail.com",
     description="A script that stitches images together and breaks them in to pages based on available whitespace",
@@ -16,7 +16,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
-        "LICENSE :: OSI APPROVED :: GNU GENERAL PUBLIC LICENSE V3 (GPLV3)Close",
+        # "LICENSE :: OSI APPROVED :: GNU General Public License v3 or later (GPLv3+)",
         "Operating System :: OS Independent",
     ],
 )

@@ -5,11 +5,10 @@ import glob
 
 from . import imgmag
 from . import entities
-from . import arguments
 from . import logger
 
 
-def run(args=arguments.parse()):
+def run(args):
     logger.logging_level = args.logging_level
 
     if shutil.which("magick") is None:
