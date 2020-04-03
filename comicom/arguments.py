@@ -10,9 +10,13 @@ def parse(text_input=None):
     # parser.add_argument("-M", "--max-height-per-page", default=15000, type=int,
     #                     help="The maximum allowed pixel height for each output page")
     parser.add_argument("-i", "--input-file-prefix", default="image", type=str,
-                        help="Will only combine images that start with this text")
+                        help="[DEPRECATED] Use the -f parameter instead; "
+                             "Will only combine images that start with this text")
+    parser.add_argument("-f", "--input-files", default="image*.jpg", type=str, nargs="+",
+                        help="Will only combine files whose names match the given list of exact names or "
+                             "regex patterns")
     parser.add_argument("-e", "--extension", default=".jpg", type=str,
-                        help="The file extension of your input images and your output page files.")
+                        help="The file extension of your output page files.")
     parser.add_argument("-o", "--output-file-prefix", default="page", type=str,
                         help="The text that will go at the start of each output page name prior to the 3 digit zero "
                              "padded page number.")
@@ -22,7 +26,8 @@ def parse(text_input=None):
                         help="The explicit width of the output pages. If no value is given, or a value of 0 is given, "
                              "then the output pages will be the same width as the first input image.")
     parser.add_argument("-id", "--input-directory", default="./", type=str,
-                        help="The path to the directory you want to collect image files from.")
+                        help="[DEPRECATED] Include your directory path in the -f parameter instead; "
+                             "The path to the directory you want to collect image files from.")
     parser.add_argument("-is", "--include-sub-directories",
                         help="This will include images in subdirectories.")
     parser.add_argument("-od", "--output-directory", default="./Compiled/", type=str,
@@ -75,5 +80,8 @@ def parse(text_input=None):
         args.logging_level = 1
     if args.verbose:
         args.logging_level = 2
+
+    if args.input_files is None or len(args.input_files) == 0:
+        args.input_files = [args.input_file_directory + "image*" + args.extension]
 
     return args

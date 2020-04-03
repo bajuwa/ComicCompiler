@@ -28,7 +28,7 @@ def run(args):
     start = time.time()
 
     # Get the images we need (based on args)
-    images = _get_input_images(args.input_directory + args.input_file_prefix + "*" + args.extension)
+    images = _get_input_images(args.input_files)
     logger.verbose("Found images: " + " ".join(map(lambda image: str(image), images)))
 
     if len(images) == 0:
@@ -59,10 +59,15 @@ def run(args):
     pass
 
 
-def _get_input_images(input_file_pattern):
+def _get_input_images(input_file_patterns):
     logger.inline("Loading images")
+    image_paths = []
+    for input_file_pattern in input_file_patterns:
+        image_paths += glob.glob(input_file_pattern)
+    image_paths = sorted(image_paths)
+    logger.verbose("Image paths: " + str(image_paths))
+
     images = []
-    image_paths = sorted(glob.glob(input_file_pattern))
     for i in range(len(image_paths)):
         if i % 5 == 0:
             logger.inline_progress()
