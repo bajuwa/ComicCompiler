@@ -2,7 +2,7 @@
 
 import tkinter
 
-from comicom import comgui
+from comiccompiler import comgui
 
 
 # execute only if run as a script
