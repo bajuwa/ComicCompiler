@@ -28,8 +28,6 @@ def parse(text_input=None):
     parser.add_argument("-id", "--input-directory", default="./", type=str,
                         help="[DEPRECATED] Include your directory path in the -f parameter instead; "
                              "The path to the directory you want to collect image files from.")
-    parser.add_argument("-is", "--include-sub-directories",
-                        help="This will include images in subdirectories.")
     parser.add_argument("-od", "--output-directory", default="./Compiled/", type=str,
                         help="The path to the directory you want to put the new page files in.")
     parser.add_argument("-b", "--breakpoint-detection-mode", default=0, type=int,
