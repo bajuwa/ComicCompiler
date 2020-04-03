@@ -12,7 +12,7 @@ def parse(text_input=None):
     parser.add_argument("-i", "--input-file-prefix", default="image", type=str,
                         help="[DEPRECATED] Use the -f parameter instead; "
                              "Will only combine images that start with this text")
-    parser.add_argument("-f", "--input-files", default="image*.jpg", type=str, nargs="+",
+    parser.add_argument("-f", "--input-files", default=["image*.jpg"], type=str, nargs="+",
                         help="Will only combine files whose names match the given list of exact names or "
                              "regex patterns")
     parser.add_argument("-e", "--extension", default=".jpg", type=str,
@@ -67,6 +67,8 @@ def parse(text_input=None):
     parser.add_argument("--verbose", action="store_true", help="Turns on verbose level logging")
 
     parser.add_argument("--gui", action="store_true", help="Opens a GUI prepopulated with the given arguments")
+    parser.add_argument("--disable-input-sort", action="store_true",
+                        help="Prevent the input list from being resorted alphanumerically prior to stitching.")
 
     if text_input is None:
         args = parser.parse_args()

@@ -2,6 +2,7 @@ import os
 import time
 import shutil
 import glob
+import natsort
 
 from . import imgmag
 from . import entities
@@ -28,8 +29,7 @@ def run(args):
     start = time.time()
 
     # Get the images we need (based on args)
-    images = _get_input_images(args.input_files)
-    logger.verbose("Found images: " + " ".join(map(lambda image: str(image), images)))
+    images = _get_input_images(args.input_files, not args.disable_input_sort)
 
     if len(images) == 0:
         logger.info("Couldn't find any images to combine")
@@ -59,12 +59,15 @@ def run(args):
     pass
 
 
-def _get_input_images(input_file_patterns):
+def _get_input_images(input_file_patterns, enable_input_sort):
+    logger.verbose("Getting images that match patterns: " +
+                   " ".join(map(lambda image: str(image), input_file_patterns)))
     logger.inline("Loading images")
     image_paths = []
     for input_file_pattern in input_file_patterns:
         image_paths += glob.glob(input_file_pattern)
-    image_paths = sorted(image_paths)
+    if enable_input_sort:
+        image_paths = natsort.natsorted(image_paths)
     logger.verbose("Image paths: " + str(image_paths))
 
     images = []
@@ -78,6 +81,7 @@ def _get_input_images(input_file_patterns):
         image.height = imgmag.get_image_height(image.path)
         images.append(image)
 
+    logger.verbose("Found images: " + " ".join(map(lambda image: str(image), images)))
     logger.inline("Loaded {img_count} images.".format(img_count=len(images)))
     logger.info("")
     return images

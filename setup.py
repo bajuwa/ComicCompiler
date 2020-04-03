@@ -14,6 +14,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/bajuwa/ComicCompiler",
     packages=setuptools.find_packages(),
+    install_requires=['natsort'],
     classifiers=[
         "Programming Language :: Python :: 3",
         # "LICENSE :: OSI APPROVED :: GNU General Public License v3 or later (GPLv3+)",
