@@ -2,8 +2,8 @@
 
 import tkinter
 
-from comicom import comgui
-from comicom import arguments
+from comiccompiler import comgui
+from comiccompiler import arguments
 
 
 # execute only if run as a script
