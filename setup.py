@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='comicom',
-    version='1.0.1',
+    version='1.1.0',
     scripts=['comicom.py', 'comgui-launcher.py'],
     author="bajuwa",
     author_email="justcallmebaj@gmail.com",
@@ -14,6 +14,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/bajuwa/ComicCompiler",
     packages=setuptools.find_packages(),
+    install_requires=['natsort'],
     classifiers=[
         "Programming Language :: Python :: 3",
         # "LICENSE :: OSI APPROVED :: GNU General Public License v3 or later (GPLv3+)",
