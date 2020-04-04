@@ -1,6 +1,7 @@
 import tkinter as tk
 import sys
 import os
+import webbrowser
 
 from tkinter import filedialog
 from tkinter import font
@@ -88,6 +89,8 @@ class InputFrame(tk.LabelFrame):
         button.grid(column=1, row=0, pady=5, padx=5)
         button = tk.Button(self, text="Import Files", command=lambda: self.select_files())
         button.grid(column=2, row=0, pady=5, padx=5)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#input-files")\
+            .grid(column=3, row=0, pady=5, padx=5)
         pass
 
     def populate_args(self, args):
@@ -122,6 +125,8 @@ class OutputFrame(tk.LabelFrame):
         button = tk.Button(self, text="Browse", command=lambda: self.select_directory())
         button.grid(column=1, row=0, sticky='we', pady=5, padx=5)
         button.bind('<Return>', lambda e: self.select_directory())
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#output-directory") \
+            .grid(column=3, row=0, pady=5, padx=5)
 
     def populate_args(self, args):
         self.output_directory.delete(0, tk.END)
@@ -154,18 +159,26 @@ class PageConfigFrame(tk.LabelFrame):
         tk.Label(self, text="###", width=2).grid(row=0, column=2, pady=5, padx=5)
         self.extension = tk.Entry(self, width=5, justify='left')
         self.extension.grid(row=0, column=3, sticky='we', pady=5, padx=5)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#output-page-file-prefix") \
+            .grid(column=5, row=0, pady=5, padx=5)
 
         tk.Label(self, text="Starting Number:").grid(row=1, column=0, pady=5, padx=5)
         self.output_file_starting_number = tk.Entry(self)
         self.output_file_starting_number.grid(row=1, column=1, columnspan=3, sticky='we', pady=5, padx=5)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#output-page-starting-number") \
+            .grid(column=5, row=1, pady=5, padx=5)
 
         tk.Label(self, text="Page Width:").grid(row=2, column=0, pady=5, padx=5)
         self.output_file_width = tk.Entry(self)
         self.output_file_width.grid(row=2, column=1, columnspan=3, sticky='we', pady=5, padx=5)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#output-page-width") \
+            .grid(column=5, row=2, pady=5, padx=5)
 
         tk.Label(self, text="Minimum Height:").grid(row=3, column=0, pady=5, padx=5)
         self.min_height_per_page = tk.Entry(self)
         self.min_height_per_page.grid(row=3, column=1, columnspan=3, sticky='we', pady=5, padx=5)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#minimum-height-per-page") \
+            .grid(column=5, row=3, pady=5, padx=5)
         pass
 
     def populate_args(self, args):
@@ -200,18 +213,26 @@ class BreakpointConfigFrame(tk.LabelFrame):
         self.breakpoint_choice.set(self.breakpoint_options[0])
         self.breakpoint_detection_mode = tk.OptionMenu(self, self.breakpoint_choice, *self.breakpoint_options)
         self.breakpoint_detection_mode.grid(row=0, column=1, sticky='we', pady=5, padx=5)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#breakpoint-detection-mode") \
+            .grid(column=3, row=0, pady=5, padx=5)
 
         tk.Label(self, text="Split on Colours:").grid(row=1, column=0, pady=5, padx=5)
         self.split_on_colour = tk.Entry(self)
         self.split_on_colour.grid(row=1, column=1, sticky='we', pady=5, padx=5)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#split-pages-on-colours") \
+            .grid(column=3, row=1, pady=5, padx=5)
 
         tk.Label(self, text="Error Tolerance:").grid(row=2, column=0, pady=5, padx=5)
         self.colour_error_tolerance = tk.Entry(self)
         self.colour_error_tolerance.grid(row=2, column=1, sticky='we', pady=5, padx=5)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#colour-split-error-tolerance") \
+            .grid(column=3, row=2, pady=5, padx=5)
 
         tk.Label(self, text="Standard Deviation:").grid(row=3, column=0, pady=5, padx=5)
         self.colour_standard_deviation = tk.Entry(self)
         self.colour_standard_deviation.grid(row=3, column=1, sticky='we', pady=5, padx=5)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#colour-split-standard-deviation") \
+            .grid(column=3, row=3, pady=5, padx=5)
         pass
 
     def populate_args(self, args):
@@ -233,7 +254,35 @@ class BreakpointConfigFrame(tk.LabelFrame):
 class RunFrame(tk.LabelFrame):
     def __init__(self, submit_func, master=None):
         tk.LabelFrame.__init__(self, master, text="Run")
-        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.extras_frame = ExtrasFrame(self)
+        self.extras_frame.grid(column=0, row=0, columnspan=2, sticky="we", pady=5, padx=5)
+
+        self.argument_input = tk.Entry(self)
+        self.argument_input.grid(column=0, row=1, sticky="we", pady=5, padx=5)
+        self.argument_input.bind('<Return>', lambda e: submit_func())
+        self.argument_input.focus()
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#command-line-arguments") \
+            .grid(column=1, row=1, pady=5, padx=5)
+
+        run_button = tk.Button(self, text="Run", command=lambda: submit_func(),
+                               font=font.Font(family='Helvetica', size=16, weight=font.BOLD))
+        run_button.grid(column=2, row=0, rowspan=2, pady=5, padx=5)
+        run_button.bind('<Return>', lambda e: submit_func())
+        pass
+
+    def populate_args(self, args):
+        return self.extras_frame.populate_args(args)
+
+    def get_args(self):
+        return self.argument_input.get() + \
+            self.extras_frame.get_args()
+
+
+class ExtrasFrame(tk.Frame):
+    def __init__(self, master):
+        tk.Frame.__init__(self, master)
 
         self.is_clean = tk.IntVar()
         self.clean = tk.Checkbutton(self, text="Clean", variable=self.is_clean)
@@ -249,27 +298,15 @@ class RunFrame(tk.LabelFrame):
         self.logging_level = tk.OptionMenu(self, self.logging_choice, *self.logging_options)
         self.logging_level.grid(column=2, row=0, sticky='we', pady=5, padx=5)
 
-        self.argument_input = tk.Entry(self)
-        self.argument_input.grid(column=0, columnspan=3, row=1, sticky="we", pady=5, padx=5)
-        self.argument_input.bind('<Return>', lambda e: submit_func())
-        self.argument_input.focus()
-
-        run_button = tk.Button(self, text="Run", command=lambda: submit_func(),
-                               font=font.Font(family='Helvetica', size=16, weight=font.BOLD))
-        run_button.grid(column=3, row=0, rowspan=2, pady=5, padx=5)
-        run_button.bind('<Return>', lambda e: submit_func())
-        pass
-
     def populate_args(self, args):
         self.logging_choice.set(self.logging_options[args.logging_level])
         self.is_open.set(1 if args.open else 0)
         self.is_clean.set(1 if args.clean else 0)
 
     def get_args(self):
-        return self.argument_input.get() + \
-            format_bool_as_argument("--clean", self.is_clean.get() == 1) + \
-            format_bool_as_argument("--open", self.is_open.get() == 1) + \
-            format_as_argument("--logging-level", self.logging_options.index(self.logging_choice.get()))
+        return format_bool_as_argument("--clean", self.is_clean.get() == 1) + \
+               format_bool_as_argument("--open", self.is_open.get() == 1) + \
+               format_as_argument("--logging-level", self.logging_options.index(self.logging_choice.get()))
 
 
 class LoggingFrame(tk.Frame):
@@ -288,6 +325,12 @@ class LoggingFrame(tk.Frame):
         self.output_terminal.configure(state='normal')
         self.output_terminal.delete('1.0', tk.END)
         self.output_terminal.configure(state='disabled')
+
+
+class WikiIcon(tk.Label):
+    def __init__(self, master, wiki_url):
+        tk.Label.__init__(self, master, text="ⓘ", fg="blue", cursor="hand2")
+        self.bind("<Button-1>", lambda e: webbrowser.open_new(wiki_url))
 
 
 class StdoutRedirector(object):
