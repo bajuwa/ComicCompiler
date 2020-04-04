@@ -9,6 +9,7 @@ from . import arguments
 from . import compiler
 from . import logger
 
+REDIRECT_LOGS = True
 
 command_line_documentation = "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(" \
                              "Python-Version)#command-line-arguments "
@@ -22,6 +23,7 @@ class MainWindow(tk.Frame):
         tk.Frame.__init__(self, master)
         self.master = master
         self.master.title("Comic Compiler")
+        self.master.resizable(False, False)
         self.grid_columnconfigure(1, weight=1)
         self.grid(pady=5, padx=5)
 
@@ -37,13 +39,20 @@ class MainWindow(tk.Frame):
         self.breakpoint_config_frame = BreakpointConfigFrame(master)
         self.breakpoint_config_frame.grid(column=0, row=3, sticky="we", pady=5, padx=5)
 
-        self.run_frame = RunFrame(self.run, master)
+        self.run_frame = RunFrame(self._run, master)
         self.run_frame.grid(column=0, row=4, sticky="we", pady=5, padx=5)
 
         self.logging_frame = LoggingFrame(master)
         self.logging_frame.grid(column=1, row=2, rowspan=6, sticky="nwse", pady=5, padx=5)
 
-    def run(self):
+    def populate_args(self, args):
+        self.input_frame.populate_args(args)
+        self.output_frame.populate_args(args)
+        self.page_config_frame.populate_args(args)
+        self.breakpoint_config_frame.populate_args(args)
+        self.run_frame.populate_args(args)
+
+    def _run(self):
         try:
             if self.input_frame.input_files.get() == "":
                 logger.info("Error: Must select input files or directory")
@@ -57,14 +66,15 @@ class MainWindow(tk.Frame):
             text_to_run += self.breakpoint_config_frame.get_args()
             text_to_run += self.run_frame.get_args()
 
-            self.run_and_log(text_to_run.strip())
+            self._run_and_log(text_to_run.strip())
         except:
             print("Unexpected error:", sys.exc_info())
         pass
 
-    def run_and_log(self, compiler_args):
+    def _run_and_log(self, compiler_args):
         self.logging_frame.clear_log()
-        logger.info("Running with arguments: " + compiler_args)
+        logger.debug("Running with arguments: " + compiler_args)
+        logger.debug("")
         compiler.run(arguments.parse(compiler_args))
 
 
@@ -79,6 +89,10 @@ class InputFrame(tk.LabelFrame):
         button = tk.Button(self, text="Import Files", command=lambda: self.select_files())
         button.grid(column=2, row=0, pady=5, padx=5)
         pass
+
+    def populate_args(self, args):
+        self.input_files.delete(0, tk.END)
+        self.input_files.insert(0, " ".join(args.input_files))
 
     def get_args(self):
         return format_as_argument("-f", self.input_files.get())
@@ -108,6 +122,13 @@ class OutputFrame(tk.LabelFrame):
         button = tk.Button(self, text="Browse", command=lambda: self.select_directory())
         button.grid(column=1, row=0, sticky='we', pady=5, padx=5)
         button.bind('<Return>', lambda e: self.select_directory())
+
+    def populate_args(self, args):
+        self.output_directory.delete(0, tk.END)
+        if args.output_directory.endswith("/"):
+            self.output_directory.insert(0, args.output_directory)
+        else:
+            self.output_directory.insert(0, args.output_directory + "/")
 
     def get_args(self):
         return format_as_argument("-od", self.output_directory.get())
@@ -147,6 +168,18 @@ class PageConfigFrame(tk.LabelFrame):
         self.min_height_per_page.grid(row=3, column=1, columnspan=3, sticky='we', pady=5, padx=5)
         pass
 
+    def populate_args(self, args):
+        self.output_file_prefix.delete(0, tk.END)
+        self.output_file_prefix.insert(0, args.output_file_prefix)
+        self.extension.delete(0, tk.END)
+        self.extension.insert(0, args.extension)
+        self.output_file_starting_number.delete(0, tk.END)
+        self.output_file_starting_number.insert(0, args.output_file_starting_number)
+        self.output_file_width.delete(0, tk.END)
+        self.output_file_width.insert(0, args.output_file_width)
+        self.min_height_per_page.delete(0, tk.END)
+        self.min_height_per_page.insert(0, args.min_height_per_page)
+
     def get_args(self):
         return \
             format_as_argument("-o", self.output_file_prefix.get()) + \
@@ -181,9 +214,18 @@ class BreakpointConfigFrame(tk.LabelFrame):
         self.colour_standard_deviation.grid(row=3, column=1, sticky='we', pady=5, padx=5)
         pass
 
+    def populate_args(self, args):
+        self.breakpoint_choice.set(self.breakpoint_options[args.breakpoint_detection_mode])
+        self.split_on_colour.delete(0, tk.END)
+        self.split_on_colour.insert(0, " ".join(map(lambda c: str(c), args.split_on_colour)))
+        self.colour_error_tolerance.delete(0, tk.END)
+        self.colour_error_tolerance.insert(0, args.colour_error_tolerance)
+        self.colour_standard_deviation.delete(0, tk.END)
+        self.colour_standard_deviation.insert(0, args.colour_standard_deviation)
+
     def get_args(self):
         return format_as_argument("-b", self.breakpoint_options.index(self.breakpoint_choice.get())) + \
-            format_list_as_argument("-c", self.split_on_colour.get()) + \
+            format_as_argument("-c", self.split_on_colour.get()) + \
             format_as_argument("-ce", self.colour_error_tolerance.get()) + \
             format_as_argument("-csd", self.colour_standard_deviation.get())
 
@@ -218,6 +260,11 @@ class RunFrame(tk.LabelFrame):
         run_button.bind('<Return>', lambda e: submit_func())
         pass
 
+    def populate_args(self, args):
+        self.logging_choice.set(self.logging_options[args.logging_level])
+        self.is_open.set(1 if args.open else 0)
+        self.is_clean.set(1 if args.clean else 0)
+
     def get_args(self):
         return self.argument_input.get() + \
             format_bool_as_argument("--clean", self.is_clean.get() == 1) + \
@@ -229,11 +276,12 @@ class LoggingFrame(tk.Frame):
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
         # show the program output when run
-        self.output_terminal = tk.Text(self)
+        self.output_terminal = tk.Text(self, width=60)
         self.output_terminal.grid(sticky="nesw", pady=5, padx=5)
         self.output_terminal.configure(state='disabled')
-        sys.stdout = StdoutRedirector(self.output_terminal)
-        sys.stderr = StdoutRedirector(self.output_terminal)
+        if REDIRECT_LOGS:
+            sys.stdout = StdoutRedirector(self.output_terminal)
+            sys.stderr = StdoutRedirector(self.output_terminal)
         pass
 
     def clear_log(self):
