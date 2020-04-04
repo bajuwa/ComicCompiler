@@ -3,9 +3,10 @@ import sys
 import os
 import webbrowser
 
-from tkinter import filedialog
+from tkinter import filedialog, simpledialog
 from tkinter import font
 
+from . import profiles
 from . import arguments
 from . import compiler
 from . import logger
@@ -23,28 +24,34 @@ class MainWindow(tk.Frame):
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
         self.master = master
-        self.master.title("Comic Compiler")
+        self.master.title("Comic Compiler (by bajuwa)")
         self.master.resizable(False, False)
         self.grid_columnconfigure(1, weight=1)
         self.grid(pady=5, padx=5)
 
+        self.info_profiles_frame = InfoAndProfilesFrame(self.get_args, self.populate_args_from_text, master)
+        self.info_profiles_frame.grid(columnspan=2, row=0, sticky="we", pady=5, padx=5)
+
         self.input_frame = InputFrame(master)
-        self.input_frame.grid(columnspan=2, row=0, sticky="we", pady=5, padx=5)
+        self.input_frame.grid(columnspan=2, row=1, sticky="we", pady=5, padx=5)
 
         self.output_frame = OutputFrame(master)
-        self.output_frame.grid(columnspan=2, row=1, sticky="we", pady=5, padx=5)
+        self.output_frame.grid(columnspan=2, row=2, sticky="we", pady=5, padx=5)
 
         self.page_config_frame = PageConfigFrame(master)
-        self.page_config_frame.grid(column=0, row=2, sticky="we", pady=5, padx=5)
+        self.page_config_frame.grid(column=0, row=3, sticky="we", pady=5, padx=5)
 
         self.breakpoint_config_frame = BreakpointConfigFrame(master)
-        self.breakpoint_config_frame.grid(column=0, row=3, sticky="we", pady=5, padx=5)
+        self.breakpoint_config_frame.grid(column=0, row=4, sticky="we", pady=5, padx=5)
 
         self.run_frame = RunFrame(self._run, master)
-        self.run_frame.grid(column=0, row=4, sticky="we", pady=5, padx=5)
+        self.run_frame.grid(column=0, row=5, sticky="we", pady=5, padx=5)
 
         self.logging_frame = LoggingFrame(master)
-        self.logging_frame.grid(column=1, row=2, rowspan=6, sticky="nwse", pady=5, padx=5)
+        self.logging_frame.grid(column=1, row=3, rowspan=6, sticky="nwse", pady=5, padx=5)
+
+    def populate_args_from_text(self, args):
+        self.populate_args(arguments.parse(args))
 
     def populate_args(self, args):
         self.input_frame.populate_args(args)
@@ -53,21 +60,24 @@ class MainWindow(tk.Frame):
         self.breakpoint_config_frame.populate_args(args)
         self.run_frame.populate_args(args)
 
+    def get_args(self):
+        text_to_run = ""
+
+        text_to_run += self.input_frame.get_args()
+        text_to_run += self.output_frame.get_args()
+        text_to_run += self.page_config_frame.get_args()
+        text_to_run += self.breakpoint_config_frame.get_args()
+        text_to_run += self.run_frame.get_args()
+
+        return text_to_run.strip()
+
     def _run(self):
         try:
             if self.input_frame.input_files.get() == "":
                 logger.info("Error: Must select input files or directory")
                 return
 
-            text_to_run = ""
-
-            text_to_run += self.input_frame.get_args()
-            text_to_run += self.output_frame.get_args()
-            text_to_run += self.page_config_frame.get_args()
-            text_to_run += self.breakpoint_config_frame.get_args()
-            text_to_run += self.run_frame.get_args()
-
-            self._run_and_log(text_to_run.strip())
+            self._run_and_log(self.get_args())
         except:
             print("Unexpected error:", sys.exc_info())
         pass
@@ -77,6 +87,65 @@ class MainWindow(tk.Frame):
         logger.debug("Running with arguments: " + compiler_args)
         logger.debug("")
         compiler.run(arguments.parse(compiler_args))
+
+
+class InfoAndProfilesFrame(tk.Frame):
+    def __init__(self, get_args, populate_args_from_text, master=None):
+        tk.Frame.__init__(self, master)
+        self.grid_columnconfigure(1, weight=1)
+
+        self.get_args = get_args
+        self.populate_args_from_text = populate_args_from_text
+
+        tk.Label(self, text="Confused?").grid(row=0, column=0, pady=5, padx=5)
+        wiki_link = tk.Label(self, text="Check out the wiki", fg="blue", cursor="hand2", anchor="w")
+        wiki_link.grid(row=0, column=1, sticky="we", pady=5, padx=5)
+        wiki_link.bind("<Button-1>", lambda e: webbrowser.open_new(
+            "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)"))
+
+        tk.Label(self, text="Profile:").grid(row=0, column=2, pady=5, padx=5)
+
+        self.profile_options = profiles.get_profile_names()
+        self.profile_choice = tk.StringVar(self.master)
+        self.profile_choice.trace('w', self.load_profile)
+        self.profile_name = tk.OptionMenu(self, self.profile_choice, *self.profile_options)
+        self.profile_name.grid(column=3, row=0, pady=5, padx=5)
+
+        button = tk.Button(self, text="Save As...", command=lambda: self.save_profile())
+        button.grid(column=4, row=0, pady=5, padx=5)
+
+        button = tk.Button(self, text="Delete", command=lambda: self.delete_profile())
+        button.grid(column=5, row=0, pady=5, padx=5)
+
+    def set_profile_name(self, profile_name):
+        self.profile_choice.set(self.profile_options.index(profile_name))
+
+    def load_profile(self, *args):
+        args_text = profiles.load_profile(self.profile_choice.get())
+        self.populate_args_from_text(args_text)
+
+    def save_profile(self):
+        profile_name = self.prompt_user_for_input(self.profile_choice.get())
+        profiles.save_profile(profile_name, self.get_args())
+        self.refresh_profiles()
+        self.profile_choice.set(profile_name)
+
+    def delete_profile(self):
+        profiles.delete_profile(self.profile_choice.get())
+        self.profile_options.remove(self.profile_choice.get())
+        self.refresh_profiles()
+        self.profile_choice.set("Default")
+
+    def refresh_profiles(self):
+        self.profile_options = profiles.get_profile_names()
+        menu = self.profile_name["menu"]
+        menu.delete(0, "end")
+        for string in self.profile_options:
+            menu.add_command(label=string,
+                             command=lambda value=string: self.profile_choice.set(value))
+
+    def prompt_user_for_input(self, default_value):
+        return simpledialog.askstring("Save profile as...", "", initialvalue=default_value, parent=self.master)
 
 
 class InputFrame(tk.LabelFrame):
@@ -252,37 +321,9 @@ class BreakpointConfigFrame(tk.LabelFrame):
 
 
 class RunFrame(tk.LabelFrame):
-    def __init__(self, submit_func, master=None):
+    def __init__(self, submit_func, master):
         tk.LabelFrame.__init__(self, master, text="Run")
-        self.grid_columnconfigure(0, weight=1)
-
-        self.extras_frame = ExtrasFrame(self)
-        self.extras_frame.grid(column=0, row=0, columnspan=2, sticky="we", pady=5, padx=5)
-
-        self.argument_input = tk.Entry(self)
-        self.argument_input.grid(column=0, row=1, sticky="we", pady=5, padx=5)
-        self.argument_input.bind('<Return>', lambda e: submit_func())
-        self.argument_input.focus()
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#command-line-arguments") \
-            .grid(column=1, row=1, pady=5, padx=5)
-
-        run_button = tk.Button(self, text="Run", command=lambda: submit_func(),
-                               font=font.Font(family='Helvetica', size=16, weight=font.BOLD))
-        run_button.grid(column=2, row=0, rowspan=2, pady=5, padx=5)
-        run_button.bind('<Return>', lambda e: submit_func())
-        pass
-
-    def populate_args(self, args):
-        return self.extras_frame.populate_args(args)
-
-    def get_args(self):
-        return self.argument_input.get() + \
-            self.extras_frame.get_args()
-
-
-class ExtrasFrame(tk.Frame):
-    def __init__(self, master):
-        tk.Frame.__init__(self, master)
+        self.grid_columnconfigure(3, weight=1)
 
         self.is_clean = tk.IntVar()
         self.clean = tk.Checkbutton(self, text="Clean", variable=self.is_clean)
@@ -297,6 +338,11 @@ class ExtrasFrame(tk.Frame):
         self.logging_choice.set(self.logging_options[0])
         self.logging_level = tk.OptionMenu(self, self.logging_choice, *self.logging_options)
         self.logging_level.grid(column=2, row=0, sticky='we', pady=5, padx=5)
+
+        run_button = tk.Button(self, text="Run", command=lambda: submit_func(),
+                               font=font.Font(family='Helvetica', size=10, weight=font.BOLD))
+        run_button.grid(column=3, row=0, sticky='we', pady=5, padx=5)
+        run_button.bind('<Return>', lambda e: submit_func())
 
     def populate_args(self, args):
         self.logging_choice.set(self.logging_options[args.logging_level])
