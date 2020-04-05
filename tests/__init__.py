@@ -1,5 +1,4 @@
 import glob
-import shutil
 import unittest
 import os
 
@@ -10,6 +9,7 @@ from comiccompiler import imgmag
 # Imports not working? Make sure it's installed by pip, and to install the current dev version:
 # pip install --editable <path/to/ComicCompiler/>
 # Run tests from base project folder via: python -m unittest
+# Cleanup test output folders via: python tests/cleanup.py
 class ComicomTestCase(unittest.TestCase):
     def setup_test_vars(self, test_folder, expected_output_folder, actual_output_folder="Compiled"):
         self.expected_output_folder = expected_output_folder
@@ -37,9 +37,3 @@ class ComicomTestCase(unittest.TestCase):
 
     def get_actual_files(self):
         return glob.glob(self.base_path + self.actual_output_folder + "/*.jpg")
-
-    def tearDown(self):
-        # Manual cleanup via:
-        # shutil.rmtree(self.args.output_directory)
-        pass
-
