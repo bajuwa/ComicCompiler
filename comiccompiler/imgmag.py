@@ -20,6 +20,10 @@ def _convert(params):
     return _command("magick convert " + params)
 
 
+def _compare(params):
+    return _command("magick compare " + params)
+
+
 def get_image_width(image_path):
     return int(_identify('-format "%w" ' + image_path))
 
@@ -47,6 +51,14 @@ def get_image_standard_deviation(image_path):
 def resize_width(target_width, image_path):
     _convert("{file} -adaptive-resize {width}x {file}".format(file=image_path, width=target_width))
     pass
+
+
+def matches(file_one, file_two):
+    return _compare("-metric rmse {} {} null: 2>&1".format(file_one, file_two)) == "0 (0)"
+
+
+def almost_matches(file_one, file_two):
+    return _compare("-metric rmse {} {} null: 2>&1".format(file_one, file_two)).startswith("0 (0")
 
 
 def combine_vertically(input_image_paths, output_image_path):
@@ -175,5 +187,3 @@ def find_solid_row_of_colour(image, offset, batch_size, row_check_increment,
     # If we couldn't find a breakpoint, then return 0's
     logger.verbose("Could not find a breakpoint in: " + image.path)
     return -1
-
-

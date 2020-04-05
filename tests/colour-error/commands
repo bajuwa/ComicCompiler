@@ -1,7 +1,0 @@
-Command:
-> python ../../comcom.py -ce 5000 -b 1
-Expected Output:
-- 3 pages cut on the off-white areas
-Common Error Output:
-- A single page due to no pure white
-- 2 pages if `-b 1` not set/working
