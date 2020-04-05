@@ -1,7 +1,7 @@
 import argparse
 
 
-def parse(text_input=None):
+def parse(input=None):
     parser = argparse.ArgumentParser(description="Given a set of images, vertically combines them in to 'pages' where the "
                                                  "start/end of the page are solid white (or some other specified colour).")
 
@@ -70,10 +70,12 @@ def parse(text_input=None):
     parser.add_argument("--disable-input-sort", action="store_true",
                         help="Prevent the input list from being resorted alphanumerically prior to stitching.")
 
-    if text_input is None:
+    if input is None:
         args = parser.parse_args()
+    elif type(input) is list:
+        args = parser.parse_args(input)
     else:
-        args = parser.parse_args(args=text_input.split(" "))
+        args = parser.parse_args(args=input.split(" "))
 
     args.split_on_colour += args.additional_split_on_colour
     if args.debug:
@@ -85,3 +87,7 @@ def parse(text_input=None):
         args.input_files = [args.input_file_directory + "image*" + args.extension]
 
     return args
+
+
+def get_defaults():
+    return parse([])

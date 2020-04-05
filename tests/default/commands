@@ -1,7 +1,0 @@
-Command:
-> python ../../comcom.py
-Expected Output:
-- A series of pages that don't cut through bubbles/text but do cut on available whitespace between panels
-- 3-4 pages
-Common Error Output:
-- [Issue #32] image40.jpg appears to end in whitespace, but does not 'break' at that point (adding colour error does not resolve the issue)
