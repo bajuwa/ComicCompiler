@@ -14,12 +14,6 @@ strategy:
       imageName: 'macos-10.14'
     windows:
       imageName: 'vs2017-win2016'
-    Python35:
-      python.version: '3.5'
-    Python36:
-      python.version: '3.6'
-    Python37:
-      python.version: '3.7'
 
 pool:
     vmImage: $(imageName)
@@ -33,10 +27,10 @@ steps:
     vstsFeedPackage: imagemagick
     vstsPackageVersion: 7.0.10
 
-- task: UsePythonVersion@0
+- task: Python 3.7
   inputs:
-    versionSpec: '$(python.version)'
-  displayName: 'Use Python $(python.version)'
+    versionSpec: '3.7'
+  displayName: 'Use Python 3.7'
 
 - script: |
     python -m pip install --upgrade pip
