@@ -6,10 +6,13 @@
 trigger:
 - master
 
-pool:
-  vmImage: 'ubuntu-latest'
 strategy:
-  matrix:
+    linux:
+      imageName: 'ubuntu-16.04'
+    mac:
+      imageName: 'macos-10.14'
+    windows:
+      imageName: 'vs2017-win2016'
     Python35:
       python.version: '3.5'
     Python36:
@@ -17,7 +20,18 @@ strategy:
     Python37:
       python.version: '3.7'
 
+pool:
+    vmImage: $(imageName)
+
 steps:
+- task: UniversalPackages@0
+  displayName: 'Universal ImageMagick'
+  inputs:
+    downloadDirectory: Application
+    vstsFeed: '00000000-0000-0000-0000-000000000000/00000000-0000-0000-0000-000000000001'
+    vstsFeedPackage: imagemagick
+    vstsPackageVersion: 7.0.10
+
 - task: UsePythonVersion@0
   inputs:
     versionSpec: '$(python.version)'
@@ -29,5 +43,6 @@ steps:
   displayName: 'Install dependencies'
 
 - script: |
-    unittest
+    pip install pytest pytest-azurepipelines
+    pytest
   displayName: 'pytest'
