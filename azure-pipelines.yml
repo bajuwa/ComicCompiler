@@ -29,6 +29,8 @@ steps:
     pip install --editable .
     sudo apt-get update -y
     sudo apt-get install -y imagemagick
+    magick --version
+    convert --version
   displayName: 'Install dependencies'
 
 - script: |
