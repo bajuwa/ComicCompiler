@@ -27,6 +27,8 @@ steps:
     python -m pip install --upgrade pip
     pip install -r requirements.txt
     pip install --editable .
+    sudo apt-get update -y
+    sudo apt-get install -y imagemagick
   displayName: 'Install dependencies'
 
 - script: |
