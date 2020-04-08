@@ -20,17 +20,17 @@ pool:
 
 steps:
 - task: UniversalPackages@0
-  displayName: 'Universal ImageMagick'
+  displayName: 'Install ImageMagick'
   inputs:
     downloadDirectory: Application
     vstsFeed: '00000000-0000-0000-0000-000000000000/00000000-0000-0000-0000-000000000001'
     vstsFeedPackage: imagemagick
     vstsPackageVersion: 7.0.10
 
-- task: Python 3.7
-  inputs:
-    versionSpec: '3.7'
-  displayName: 'Use Python 3.7'
+- task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.7'
+    displayName: 'Use Python 3.7'
 
 - script: |
     python -m pip install --upgrade pip
