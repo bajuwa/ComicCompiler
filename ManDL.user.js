@@ -129,6 +129,8 @@ function findImagesFromSource(sourceHref) {
         return $("img[src*=\"manhua_detail\"]");
     } else if (sourceHref.includes("manhuadui")) {
         return $("div#images img[src$=jpg]");
+    } else if (sourceHref.includes("kuman5")) {
+        return $("div.readForm#cp_img img");
     } else {
         console.log("WARNING: Could not determine appropriate scraping criteria, downloading all images");
         return $("img[src$=jpg]");
