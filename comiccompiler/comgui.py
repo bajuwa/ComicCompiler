@@ -5,6 +5,7 @@ import webbrowser
 
 from tkinter import filedialog, simpledialog
 from tkinter import font
+from concurrent import futures
 
 from . import profiles
 from . import arguments
@@ -15,11 +16,15 @@ REDIRECT_LOGS = True
 
 command_line_documentation = "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(" \
                              "Python-Version)#command-line-arguments "
+                             
+ 
+thread_pool_executor = futures.ThreadPoolExecutor(max_workers=1)
 
 
 class MainWindow(tk.Frame):
     output_terminal = None
     argument_input = None
+    current_thread = None
 
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
@@ -44,7 +49,7 @@ class MainWindow(tk.Frame):
         self.breakpoint_config_frame = BreakpointConfigFrame(master)
         self.breakpoint_config_frame.grid(column=0, row=4, sticky="we", pady=5, padx=5)
 
-        self.run_frame = RunFrame(self._run, master)
+        self.run_frame = RunFrame(self._run_on_thread, master)
         self.run_frame.grid(column=0, row=5, sticky="we", pady=5, padx=5)
 
         self.logging_frame = LoggingFrame(master)
@@ -70,6 +75,17 @@ class MainWindow(tk.Frame):
         text_to_run += self.run_frame.get_args()
 
         return text_to_run.strip()
+
+    def _run_on_thread(self):
+        if self.current_thread is None or self.current_thread.done():
+            self.current_thread = thread_pool_executor.submit(self._run)
+            self.current_thread.add_done_callback(self.run_frame.finished_running)
+            self.run_frame.started_running()
+        else:
+            # This doesn't actually cancel.... 
+            self.current_thread.cancel()
+            if self.current_thread.done():
+                self.run_frame.finished_running()
 
     def _run(self):
         try:
@@ -339,10 +355,20 @@ class RunFrame(tk.LabelFrame):
         self.logging_level = tk.OptionMenu(self, self.logging_choice, *self.logging_options)
         self.logging_level.grid(column=2, row=0, sticky='we', pady=5, padx=5)
 
-        run_button = tk.Button(self, text="Run", command=lambda: submit_func(),
+        self.run_button_text = tk.StringVar()
+        self.run_button_text.set("Run")
+        self.run_button = tk.Button(self, textvariable=self.run_button_text, command=lambda: submit_func(),
                                font=font.Font(family='Helvetica', size=10, weight=font.BOLD))
-        run_button.grid(column=3, row=0, sticky='we', pady=5, padx=5)
-        run_button.bind('<Return>', lambda e: submit_func())
+        self.run_button.grid(column=3, row=0, sticky='we', pady=5, padx=5)
+        self.run_button.bind('<Return>', lambda e: submit_func())
+        
+    def started_running(self):
+        #self.run_button_text.set("Cancel")
+        self.run_button.config(state="disabled")
+        
+    def finished_running(self, *args):
+        #self.run_button_text.set("Run")
+        self.run_button.config(state="active")
 
     def populate_args(self, args):
         self.logging_choice.set(self.logging_options[args.logging_level])
