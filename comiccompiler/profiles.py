@@ -57,7 +57,7 @@ def _ensure_profile_directory():
     default_profile_file = _get_profiles_file_name("Default")
     if not os.path.exists(default_profile_file):
         with open(default_profile_file, 'w') as file:
-            file.write("-l 0")
+            file.write("--open -f=C:/path/to/my/images/*.* -od=C:/path/to/my/images/Compiled")
             file.close()
 
 

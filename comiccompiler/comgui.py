@@ -12,7 +12,7 @@ from . import arguments
 from . import compiler
 from . import logger
 
-REDIRECT_LOGS = True
+REDIRECT_LOGS = False
 
 command_line_documentation = "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(" \
                              "Python-Version)#command-line-arguments "
@@ -57,6 +57,11 @@ class MainWindow(tk.Frame):
 
     def populate_args_from_text(self, args):
         self.populate_args(arguments.parse(args))
+
+    def preload_with_sys_vars(self):
+        self.info_profiles_frame.clear_profile_selection()
+        if len(sys.argv) > 1:
+            self.populate_args(arguments.parse())
 
     def populate_args(self, args):
         self.input_frame.populate_args(args)
@@ -133,6 +138,9 @@ class InfoAndProfilesFrame(tk.Frame):
         button = tk.Button(self, text="Delete", command=lambda: self.delete_profile())
         button.grid(column=5, row=0, pady=5, padx=5)
 
+    def clear_profile_selection(self):
+        self.profile_choice.set("Default")
+
     def set_profile_name(self, profile_name):
         self.profile_choice.set(self.profile_options.index(profile_name))
 
@@ -180,7 +188,8 @@ class InputFrame(tk.LabelFrame):
 
     def populate_args(self, args):
         self.input_files.delete(0, tk.END)
-        self.input_files.insert(0, " ".join(args.input_files))
+        if args.input_files is not None:
+            self.input_files.insert(0, " ".join(args.input_files))
 
     def get_args(self):
         return format_as_argument("-f", self.input_files.get())
