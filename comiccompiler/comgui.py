@@ -12,7 +12,7 @@ from . import arguments
 from . import compiler
 from . import logger
 
-REDIRECT_LOGS = False
+REDIRECT_LOGS = True
 
 command_line_documentation = "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(" \
                              "Python-Version)#command-line-arguments "
@@ -297,6 +297,13 @@ class PageConfigFrame(tk.LabelFrame):
 
 
 class BreakpointConfigFrame(tk.LabelFrame):
+    colour_options_map = {
+        "Solid Black/White" : ["0 65535", "0", "0"], 
+        "Any Solid Colour" : ["0", "65535", "0"], 
+        "Non-solid B/W" : ["0 65535", "10000", "1000"], 
+        "Non-solid Colour" : ["0", "65535", "1000"]
+    }
+
     def __init__(self, master=None):
         tk.LabelFrame.__init__(self, master, text="Breakpoints")
         self.grid_columnconfigure(1, weight=1)
@@ -310,24 +317,41 @@ class BreakpointConfigFrame(tk.LabelFrame):
         WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#breakpoint-detection-mode") \
             .grid(column=3, row=0, pady=5, padx=5)
 
-        tk.Label(self, text="Split on Colours:").grid(row=1, column=0, pady=5, padx=5)
-        self.split_on_colour = tk.Entry(self)
-        self.split_on_colour.grid(row=1, column=1, sticky='we', pady=5, padx=5)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#split-pages-on-colours") \
-            .grid(column=3, row=1, pady=5, padx=5)
+        tk.Label(self, text="Colour Presets:").grid(row=1, column=0, pady=5, padx=5)
+        self.colour_options = [""]
+        self.colour_options += self.colour_options_map.keys()
+        self.colour_choice = tk.StringVar(self.master)
+        self.colour_choice.trace('w', self.load_colour_preset)
+        self.colour_choice.set(self.colour_options[0])
+        self.colour_preset = tk.OptionMenu(self, self.colour_choice, *self.colour_options)
+        self.colour_preset.grid(row=1, column=1, sticky='we', pady=5, padx=5)
 
-        tk.Label(self, text="Error Tolerance:").grid(row=2, column=0, pady=5, padx=5)
-        self.colour_error_tolerance = tk.Entry(self)
-        self.colour_error_tolerance.grid(row=2, column=1, sticky='we', pady=5, padx=5)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#colour-split-error-tolerance") \
+        tk.Label(self, text="Split on Colours:").grid(row=2, column=0, pady=5, padx=5)
+        self.split_on_colour = tk.Entry(self)
+        self.split_on_colour.grid(row=2, column=1, sticky='we', pady=5, padx=5)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#split-pages-on-colours") \
             .grid(column=3, row=2, pady=5, padx=5)
 
-        tk.Label(self, text="Standard Deviation:").grid(row=3, column=0, pady=5, padx=5)
-        self.colour_standard_deviation = tk.Entry(self)
-        self.colour_standard_deviation.grid(row=3, column=1, sticky='we', pady=5, padx=5)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#colour-split-standard-deviation") \
+        tk.Label(self, text="Error Tolerance:").grid(row=3, column=0, pady=5, padx=5)
+        self.colour_error_tolerance = tk.Entry(self)
+        self.colour_error_tolerance.grid(row=3, column=1, sticky='we', pady=5, padx=5)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#colour-split-error-tolerance") \
             .grid(column=3, row=3, pady=5, padx=5)
+
+        tk.Label(self, text="Standard Deviation:").grid(row=4, column=0, pady=5, padx=5)
+        self.colour_standard_deviation = tk.Entry(self)
+        self.colour_standard_deviation.grid(row=4, column=1, sticky='we', pady=5, padx=5)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#colour-split-standard-deviation") \
+            .grid(column=3, row=4, pady=5, padx=5)
         pass
+        
+    def load_colour_preset(self, *args):
+        self.split_on_colour.delete(0, tk.END)
+        self.split_on_colour.insert(0, self.colour_options_map[self.colour_choice.get()][0])
+        self.colour_error_tolerance.delete(0, tk.END)
+        self.colour_error_tolerance.insert(0, self.colour_options_map[self.colour_choice.get()][1])
+        self.colour_standard_deviation.delete(0, tk.END)
+        self.colour_standard_deviation.insert(0, self.colour_options_map[self.colour_choice.get()][2])
 
     def populate_args(self, args):
         self.breakpoint_choice.set(self.breakpoint_options[args.breakpoint_detection_mode])
