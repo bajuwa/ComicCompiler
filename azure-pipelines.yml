@@ -1,0 +1,57 @@
+# Python package
+# Create and test a Python package on multiple Python versions.
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger:
+  - master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.7'
+  displayName: 'Use Python 3.7'
+
+- script: |
+    # Install Regular script dependencies
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+
+    # This installs the ComicCompiler source code so that the tests can easily access the classes to test via imports
+    pip install --editable .
+
+    # This is the lengthy process of downloading, making, and installing ImageMagick v7
+    sudo apt update
+    sudo apt build-dep imagemagick
+    wget https://www.imagemagick.org/download/ImageMagick.tar.gz
+    tar xf ImageMagick.tar.gz
+    cd ImageMagick-7*
+    ./configure
+    make
+    sudo make install
+    sudo ldconfig /usr/local/lib
+  displayName: 'Install dependencies'
+
+- script: |
+    pip install pytest pytest-azurepipelines
+    pytest
+  displayName: 'pytest'
+
+# - script: |
+#     pip install wheel
+#     pip install twine
+#     python setup.py sdist bdist_wheel
+#   displayName: 'Prepare PyPI artifacts'
+
+# # If tests all pass, continue with deployment to PyPI                
+# - task: TwineAuthenticate@0
+#   inputs:
+#     artifactFeeds: 'bajuwa'
+#     externalFeeds: 'pypi-comicom'
+
+# - script: |
+#      python -m twine upload --repository-url https://upload.pypi.org/legacy/ -r comicom --config-file $(PYPIRC_PATH) dist/*
+#   displayName: 'Uploading to PyPI'

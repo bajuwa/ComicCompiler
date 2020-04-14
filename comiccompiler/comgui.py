@@ -5,6 +5,7 @@ import webbrowser
 
 from tkinter import filedialog, simpledialog
 from tkinter import font
+from concurrent import futures
 
 from . import profiles
 from . import arguments
@@ -15,11 +16,15 @@ REDIRECT_LOGS = True
 
 command_line_documentation = "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(" \
                              "Python-Version)#command-line-arguments "
+                             
+ 
+thread_pool_executor = futures.ThreadPoolExecutor(max_workers=1)
 
 
 class MainWindow(tk.Frame):
     output_terminal = None
     argument_input = None
+    current_thread = None
 
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
@@ -44,7 +49,7 @@ class MainWindow(tk.Frame):
         self.breakpoint_config_frame = BreakpointConfigFrame(master)
         self.breakpoint_config_frame.grid(column=0, row=4, sticky="we", pady=5, padx=5)
 
-        self.run_frame = RunFrame(self._run, master)
+        self.run_frame = RunFrame(self._run_on_thread, master)
         self.run_frame.grid(column=0, row=5, sticky="we", pady=5, padx=5)
 
         self.logging_frame = LoggingFrame(master)
@@ -52,6 +57,11 @@ class MainWindow(tk.Frame):
 
     def populate_args_from_text(self, args):
         self.populate_args(arguments.parse(args))
+
+    def preload_with_sys_vars(self):
+        self.info_profiles_frame.clear_profile_selection()
+        if len(sys.argv) > 1:
+            self.populate_args(arguments.parse())
 
     def populate_args(self, args):
         self.input_frame.populate_args(args)
@@ -70,6 +80,17 @@ class MainWindow(tk.Frame):
         text_to_run += self.run_frame.get_args()
 
         return text_to_run.strip()
+
+    def _run_on_thread(self):
+        if self.current_thread is None or self.current_thread.done():
+            self.current_thread = thread_pool_executor.submit(self._run)
+            self.current_thread.add_done_callback(self.run_frame.finished_running)
+            self.run_frame.started_running()
+        else:
+            # This doesn't actually cancel.... 
+            self.current_thread.cancel()
+            if self.current_thread.done():
+                self.run_frame.finished_running()
 
     def _run(self):
         try:
@@ -116,6 +137,9 @@ class InfoAndProfilesFrame(tk.Frame):
 
         button = tk.Button(self, text="Delete", command=lambda: self.delete_profile())
         button.grid(column=5, row=0, pady=5, padx=5)
+
+    def clear_profile_selection(self):
+        self.profile_choice.set("Default")
 
     def set_profile_name(self, profile_name):
         self.profile_choice.set(self.profile_options.index(profile_name))
@@ -164,7 +188,8 @@ class InputFrame(tk.LabelFrame):
 
     def populate_args(self, args):
         self.input_files.delete(0, tk.END)
-        self.input_files.insert(0, " ".join(args.input_files))
+        if args.input_files is not None:
+            self.input_files.insert(0, " ".join(args.input_files))
 
     def get_args(self):
         return format_as_argument("-f", self.input_files.get())
@@ -272,6 +297,13 @@ class PageConfigFrame(tk.LabelFrame):
 
 
 class BreakpointConfigFrame(tk.LabelFrame):
+    colour_options_map = {
+        "Solid Black/White" : ["0 65535", "0", "0"], 
+        "Any Solid Colour" : ["0", "65535", "0"], 
+        "Non-solid B/W" : ["0 65535", "10000", "1000"], 
+        "Non-solid Colour" : ["0", "65535", "1000"]
+    }
+
     def __init__(self, master=None):
         tk.LabelFrame.__init__(self, master, text="Breakpoints")
         self.grid_columnconfigure(1, weight=1)
@@ -285,24 +317,41 @@ class BreakpointConfigFrame(tk.LabelFrame):
         WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#breakpoint-detection-mode") \
             .grid(column=3, row=0, pady=5, padx=5)
 
-        tk.Label(self, text="Split on Colours:").grid(row=1, column=0, pady=5, padx=5)
-        self.split_on_colour = tk.Entry(self)
-        self.split_on_colour.grid(row=1, column=1, sticky='we', pady=5, padx=5)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#split-pages-on-colours") \
-            .grid(column=3, row=1, pady=5, padx=5)
+        tk.Label(self, text="Colour Presets:").grid(row=1, column=0, pady=5, padx=5)
+        self.colour_options = [""]
+        self.colour_options += self.colour_options_map.keys()
+        self.colour_choice = tk.StringVar(self.master)
+        self.colour_choice.trace('w', self.load_colour_preset)
+        self.colour_choice.set(self.colour_options[0])
+        self.colour_preset = tk.OptionMenu(self, self.colour_choice, *self.colour_options)
+        self.colour_preset.grid(row=1, column=1, sticky='we', pady=5, padx=5)
 
-        tk.Label(self, text="Error Tolerance:").grid(row=2, column=0, pady=5, padx=5)
-        self.colour_error_tolerance = tk.Entry(self)
-        self.colour_error_tolerance.grid(row=2, column=1, sticky='we', pady=5, padx=5)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#colour-split-error-tolerance") \
+        tk.Label(self, text="Split on Colours:").grid(row=2, column=0, pady=5, padx=5)
+        self.split_on_colour = tk.Entry(self)
+        self.split_on_colour.grid(row=2, column=1, sticky='we', pady=5, padx=5)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#split-pages-on-colours") \
             .grid(column=3, row=2, pady=5, padx=5)
 
-        tk.Label(self, text="Standard Deviation:").grid(row=3, column=0, pady=5, padx=5)
-        self.colour_standard_deviation = tk.Entry(self)
-        self.colour_standard_deviation.grid(row=3, column=1, sticky='we', pady=5, padx=5)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#colour-split-standard-deviation") \
+        tk.Label(self, text="Error Tolerance:").grid(row=3, column=0, pady=5, padx=5)
+        self.colour_error_tolerance = tk.Entry(self)
+        self.colour_error_tolerance.grid(row=3, column=1, sticky='we', pady=5, padx=5)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#colour-split-error-tolerance") \
             .grid(column=3, row=3, pady=5, padx=5)
+
+        tk.Label(self, text="Standard Deviation:").grid(row=4, column=0, pady=5, padx=5)
+        self.colour_standard_deviation = tk.Entry(self)
+        self.colour_standard_deviation.grid(row=4, column=1, sticky='we', pady=5, padx=5)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#colour-split-standard-deviation") \
+            .grid(column=3, row=4, pady=5, padx=5)
         pass
+        
+    def load_colour_preset(self, *args):
+        self.split_on_colour.delete(0, tk.END)
+        self.split_on_colour.insert(0, self.colour_options_map[self.colour_choice.get()][0])
+        self.colour_error_tolerance.delete(0, tk.END)
+        self.colour_error_tolerance.insert(0, self.colour_options_map[self.colour_choice.get()][1])
+        self.colour_standard_deviation.delete(0, tk.END)
+        self.colour_standard_deviation.insert(0, self.colour_options_map[self.colour_choice.get()][2])
 
     def populate_args(self, args):
         self.breakpoint_choice.set(self.breakpoint_options[args.breakpoint_detection_mode])
@@ -339,10 +388,20 @@ class RunFrame(tk.LabelFrame):
         self.logging_level = tk.OptionMenu(self, self.logging_choice, *self.logging_options)
         self.logging_level.grid(column=2, row=0, sticky='we', pady=5, padx=5)
 
-        run_button = tk.Button(self, text="Run", command=lambda: submit_func(),
+        self.run_button_text = tk.StringVar()
+        self.run_button_text.set("Run")
+        self.run_button = tk.Button(self, textvariable=self.run_button_text, command=lambda: submit_func(),
                                font=font.Font(family='Helvetica', size=10, weight=font.BOLD))
-        run_button.grid(column=3, row=0, sticky='we', pady=5, padx=5)
-        run_button.bind('<Return>', lambda e: submit_func())
+        self.run_button.grid(column=3, row=0, sticky='we', pady=5, padx=5)
+        self.run_button.bind('<Return>', lambda e: submit_func())
+        
+    def started_running(self):
+        #self.run_button_text.set("Cancel")
+        self.run_button.config(state="disabled")
+        
+    def finished_running(self, *args):
+        #self.run_button_text.set("Run")
+        self.run_button.config(state="active")
 
     def populate_args(self, args):
         self.logging_choice.set(self.logging_options[args.logging_level])

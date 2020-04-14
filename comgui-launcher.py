@@ -10,5 +10,5 @@ from comiccompiler import arguments
 if __name__ == "__main__":
     window = tkinter.Tk()
     comgui = comgui.MainWindow(window)
-    comgui.populate_args(arguments.parse())
+    comgui.preload_with_sys_vars()
     window.mainloop()
