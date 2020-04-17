@@ -321,8 +321,8 @@ class BreakpointConfigFrame(tk.LabelFrame):
         self.colour_options = [""]
         self.colour_options += self.colour_options_map.keys()
         self.colour_choice = tk.StringVar(self.master)
-        self.colour_choice.trace('w', self.load_colour_preset)
         self.colour_choice.set(self.colour_options[0])
+        self.colour_choice.trace('w', self.load_colour_preset)
         self.colour_preset = tk.OptionMenu(self, self.colour_choice, *self.colour_options)
         self.colour_preset.grid(row=1, column=1, sticky='we', pady=5, padx=5)
 
