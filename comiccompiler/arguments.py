@@ -1,4 +1,5 @@
 import argparse
+import shlex
 
 
 def parse(input=None):
@@ -75,7 +76,7 @@ def parse(input=None):
     elif type(input) is list:
         args = parser.parse_args(input)
     else:
-        args = parser.parse_args(args=input.split(" "))
+        args = parser.parse_args(args=shlex.split(input))
 
     args.split_on_colour += args.additional_split_on_colour
     if args.debug:

@@ -21,6 +21,16 @@ command_line_documentation = "https://github.com/bajuwa/ComicCompiler/wiki/ComCo
 thread_pool_executor = futures.ThreadPoolExecutor(max_workers=1)
 
 
+def input_list(entry, items):
+    entry.delete(0, tk.END)
+    if items is not None:
+        entry.insert(0, " ".join(map(lambda item: trim_and_quote(item), items)))
+
+
+def extract_list(entry):
+    return entry.get().split(" ")
+
+
 class MainWindow(tk.Frame):
     output_terminal = None
     argument_input = None
@@ -187,12 +197,10 @@ class InputFrame(tk.LabelFrame):
         pass
 
     def populate_args(self, args):
-        self.input_files.delete(0, tk.END)
-        if args.input_files is not None:
-            self.input_files.insert(0, " ".join(args.input_files))
+        input_list(self.input_files, args.input_files)
 
     def get_args(self):
-        return format_as_argument("-f", self.input_files.get())
+        return format_as_argument("-f", extract_list(self.input_files))
 
     def select_directory(self):
         directory = filedialog.askdirectory(
@@ -200,14 +208,13 @@ class InputFrame(tk.LabelFrame):
         )
         if os.path.isdir(directory):
             self.input_files.delete(0, tk.END)
-            self.input_files.insert(0, directory + "/*.*")
+            self.input_files.insert(0, trim_and_quote(directory + "/*.*"))
 
     def select_files(self):
         files = filedialog.askopenfilenames(
             title="Select files to combine..."
         )
-        self.input_files.delete(0, tk.END)
-        self.input_files.insert(0, files)
+        input_list(self.input_files, files)
 
 
 class OutputFrame(tk.LabelFrame):
@@ -225,9 +232,9 @@ class OutputFrame(tk.LabelFrame):
     def populate_args(self, args):
         self.output_directory.delete(0, tk.END)
         if args.output_directory.endswith("/"):
-            self.output_directory.insert(0, args.output_directory)
+            self.output_directory.insert(0, trim_and_quote(args.output_directory))
         else:
-            self.output_directory.insert(0, args.output_directory + "/")
+            self.output_directory.insert(0, trim_and_quote(args.output_directory + "/"))
 
     def get_args(self):
         return format_as_argument("-od", self.output_directory.get())
@@ -298,10 +305,10 @@ class PageConfigFrame(tk.LabelFrame):
 
 class BreakpointConfigFrame(tk.LabelFrame):
     colour_options_map = {
-        "Solid Black/White" : ["0 65535", "0", "0"], 
-        "Any Solid Colour" : ["0", "65535", "0"], 
-        "Non-solid B/W" : ["0 65535", "10000", "1000"], 
-        "Non-solid Colour" : ["0", "65535", "1000"]
+        "Solid Black/White": ["0 65535", "0", "0"],
+        "Any Solid Colour": ["0", "65535", "0"],
+        "Non-solid B/W": ["0 65535", "10000", "1000"],
+        "Non-solid Colour": ["0", "65535", "1000"]
     }
 
     def __init__(self, master=None):
@@ -409,8 +416,8 @@ class RunFrame(tk.LabelFrame):
         self.is_clean.set(1 if args.clean else 0)
 
     def get_args(self):
-        return format_bool_as_argument("--clean", self.is_clean.get() == 1) + \
-               format_bool_as_argument("--open", self.is_open.get() == 1) + \
+        return format_as_argument("--clean", self.is_clean.get() == 1) + \
+               format_as_argument("--open", self.is_open.get() == 1) + \
                format_as_argument("--logging-level", self.logging_options.index(self.logging_choice.get()))
 
 
@@ -452,27 +459,21 @@ class StdoutRedirector(object):
         self.text_space.update_idletasks()
 
 
+def trim_and_quote(item):
+    string = str(item).strip()
+    if " " in string:
+        return '"' + string + '"'
+    return string
+
+
 def format_as_argument(tag, arg):
     # Beware of issue #16 where spaces in file names cause problems on input
-    if arg != "" and arg is not None:
-        return " " + str(tag) + " " + str(arg)
+    if arg is not None:
+        if isinstance(arg, list):
+            return " " + tag + " " + " ".join(list(map(lambda item: trim_and_quote(item), arg)))
+        if isinstance(arg, bool):
+            if arg:
+                return " " + tag
+        elif arg != "":
+            return " " + str(tag) + ' ' + str(arg)
     return ""
-
-
-def format_list_as_argument(tag, arg_list):
-    # Beware of issue #16 where spaces in file names cause problems on input
-    if arg_list is not None and len(arg_list) > 0:
-        return " " + tag + " " + " ".join(arg_list)
-    return ""
-
-
-def format_bool_as_argument(tag, arg):
-    if arg:
-        return " " + tag
-    return ""
-
-
-def empty_to_none(param, on_empty):
-    if param == "" or param is None:
-        return on_empty
-    return param

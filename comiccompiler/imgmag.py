@@ -25,47 +25,57 @@ def _compare(params):
 
 
 def get_image_width(image_path):
-    return int(_identify('-format "%w" ' + image_path))
+    return int(_identify('-format "%w" "' + image_path + '"'))
 
 
 def get_image_height(image_path):
-    return int(_identify('-format "%h" ' + image_path))
+    return int(_identify('-format "%h" "' + image_path + '"'))
 
 
 def get_image_gray_min(image_path):
-    return round(float(_identify('-format %[min] ' + image_path)))
+    return round(float(_identify('-format %[min] "' + image_path + '"')))
 
 
 def get_image_gray_mean(image_path):
-    return round(float(_identify('-format %[mean] ' + image_path)))
+    return round(float(_identify('-format %[mean] "' + image_path + '"')))
 
 
 def get_image_gray_max(image_path):
-    return round(float(_identify('-format %[max] ' + image_path)))
+    return round(float(_identify('-format %[max] "' + image_path + '"')))
 
 
 def get_image_standard_deviation(image_path):
-    return round(float(_identify('-format %[standard-deviation] ' + image_path)))
+    return round(float(_identify('-format %[standard-deviation] "' + image_path + '"')))
 
 
 def resize_width(target_width, image_path):
-    _convert("{file} -adaptive-resize {width}x {file}".format(file=image_path, width=target_width))
+    _convert('"{file}" -adaptive-resize {width}x "{file}"'.format(file=image_path, width=target_width))
     pass
 
 
+def _compare_files(file_one, file_two):
+    result = _compare('-metric rmse "{}" "{}" null: 2>&1'.format(file_one, file_two))
+    logger.verbose("Compared {} and {} to get result: {}".format(file_one, file_two, result))
+    return result
+
+
 def matches(file_one, file_two):
-    return _compare("-metric rmse {} {} null: 2>&1".format(file_one, file_two)) == "0 (0)"
+    return _compare_files(file_one, file_two) == "0 (0)"
 
 
 def almost_matches(file_one, file_two):
-    return _compare("-metric rmse {} {} null: 2>&1".format(file_one, file_two)).startswith("0 (0")
+    result = _compare_files(file_one, file_two)
+    return result == "0 (0)" or " (0.00" in result
 
 
 def combine_vertically(input_image_paths, output_image_path):
     # -append           : will stitch together the images vertically
     # -colorspace sRGB  : prevents a single white/black image from making the whole page black/white
-    _convert("-append {images} -colorspace sRGB {output_page_name}".format(
-        images=input_image_paths, output_page_name=output_image_path))
+    logger.debug("Combining images into output file: " + output_image_path)
+    _convert('-append {images} -colorspace sRGB "{output_page_name}"'.format(
+        images=" ".join(map(lambda image_path: '"' + str(image_path) + '"', input_image_paths)),
+        output_page_name=output_image_path)
+    )
     pass
 
 
@@ -74,7 +84,7 @@ def crop_in_place(file, width, height, top_offset):
         width=width, height=height, top_offset=top_offset
     )
     logger.debug("Cropping: {file}[{sample}]".format(file=file, sample=crop_sample_range))
-    _convert("-crop {sample} {file} {file}".format(sample=crop_sample_range, file=file))
+    _convert('-crop {sample} "{file}" "{file}"'.format(sample=crop_sample_range, file=file))
     pass
 
 
@@ -135,7 +145,7 @@ def sample_contains_colour(file_sample, split_on_colour, colour_error_tolerance)
 
 
 def image_bottom_row_is_colour(image, split_on_colour, colour_error_tolerance, colour_standard_deviation):
-    file_sample = "{file_name}[{width}x1+0+{height}]".format(file_name=image.path,
+    file_sample = '"{file_name}"[{width}x1+0+{height}]'.format(file_name=image.path,
                                                              width=image.width-1,
                                                              height=image.height-1)
     return sample_is_colour(file_sample, split_on_colour, colour_error_tolerance, colour_standard_deviation)
@@ -150,7 +160,7 @@ def find_solid_row_of_colour(image, offset, batch_size, row_check_increment,
         logger.inline_progress()
         batch_start = batch_end
         batch_end = min(batch_start + batch_size, image.height - 1)
-        batch_file_sample = "{file}[{width}x1+0+{row}]" \
+        batch_file_sample = '"{file}"[{width}x1+0+{row}]' \
             .format(file=image.path, width=image.width-1, row=batch_start)
         logger.verbose("Checking batch for possible breakpoint colours {colours}: {start}-{end}"
                        .format(colours=split_on_colour, start=batch_start, end=batch_end))
@@ -164,7 +174,7 @@ def find_solid_row_of_colour(image, offset, batch_size, row_check_increment,
                            .format(start=batch_start, end=batch_end))
 
         for index in range(batch_start, batch_end, row_check_increment):
-            file_sampling = "{file}[{width}x1+0+{row}]" \
+            file_sampling = '"{file}"[{width}x1+0+{row}]' \
                 .format(file=image.path, width=image.width-1, row=index)
             gray_mean_value = get_image_gray_mean(file_sampling)
             for colour in split_on_colour:

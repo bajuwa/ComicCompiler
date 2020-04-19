@@ -152,7 +152,7 @@ def _define_page(page, images, min_height_per_page, breakpoint_detection_mode, s
 
 
 def _get_image_paths(images):
-    return " ".join(map(lambda image: image.path, images))
+    return list(map(lambda image: image.path, images))
 
 
 def _stitch_page(page, output_directory):
@@ -170,13 +170,12 @@ def _stitch_page(page, output_directory):
 def _crop_page(page, output_file_width, output_directory):
     if page.crop_from_bottom == 0 and page.crop_from_top == 0:
         logger.verbose("No cropping occurred for " + page.name)
-        pass
+        return
 
     logger.verbose("Cropping page: " + str(page))
 
     imgmag.crop_in_place(output_directory + page.name, output_file_width, page.calculate_cropped_height(),
                          page.crop_from_top)
-    pass
 
 
 def _combine_images(images, output_directory, output_file_prefix, output_file_starting_number, extension,
