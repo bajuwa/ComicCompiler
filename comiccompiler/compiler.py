@@ -93,6 +93,7 @@ def _ensure_directory(output_directory, clean):
         # We have to wait for rmtree to properly finish before trying to mkdir again
         while os.path.exists(output_directory):
             continue
+        time.sleep(0.5)
 
     if not os.path.exists(output_directory):
         os.mkdir(output_directory)
