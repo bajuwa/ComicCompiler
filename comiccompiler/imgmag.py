@@ -88,23 +88,6 @@ def crop_in_place(file, width, height, top_offset):
     pass
 
 
-def ensure_consistent_width(target_width, images):
-    if target_width == 0:
-        logger.debug("No given width, extracting first images width: %s " % images[0])
-        target_width = images[0].width
-
-    logger.info("Checking input images are target width: " + str(target_width))
-
-    for image in images:
-        if image.width != target_width:
-            logger.verbose("File {file} not target width {target_width}, current width {current_width}"
-                           .format(file=image.path, target_width=target_width, current_width=image.width))
-            resize_width(target_width, image.path)
-            image.width = target_width
-
-    pass
-
-
 def sample_is_colour(file_sample, split_on_colour, colour_error_tolerance, colour_standard_deviation):
     gray_mean_value = get_image_gray_mean(file_sample)
     standard_deviation = get_image_standard_deviation(file_sample)

@@ -1,4 +1,5 @@
 import os
+import tempfile
 import time
 import shutil
 import glob
@@ -35,12 +36,16 @@ def run(args):
         logger.info("Couldn't find any images to combine")
         return
 
-    imgmag.ensure_consistent_width(args.output_file_width, images)
+    temp_directory = tempfile.mkdtemp(prefix="comicom")
+
+    _ensure_consistent_width(args.output_file_width, images, temp_directory)
     _ensure_directory(args.output_directory, args.clean)
     _combine_images(images, args.output_directory, args.output_file_prefix, args.output_file_starting_number,
                     args.extension, args.min_height_per_page, args.output_file_width, args.breakpoint_detection_mode,
                     args.break_points_increment, args.break_points_multiplier, args.split_on_colour,
                     args.colour_error_tolerance, args.colour_standard_deviation)
+
+    shutil.rmtree(temp_directory)
 
     end = time.time()
     total_time = end - start
@@ -85,6 +90,30 @@ def _get_input_images(input_file_patterns, enable_input_sort):
     logger.inline("Loaded {img_count} images.".format(img_count=len(images)))
     logger.info("")
     return images
+
+
+def _copy_to_temp(path, temp_directory):
+    if not os.path.exists(temp_directory):
+        os.mkdir(temp_directory)
+    return shutil.copy2(path, temp_directory)
+
+
+def _ensure_consistent_width(target_width, images, temp_directory):
+    if target_width == 0:
+        logger.debug("No given width, extracting first images width: %s " % images[0])
+        target_width = images[0].width
+
+    logger.info("Checking input images are target width: " + str(target_width))
+
+    for image in images:
+        if image.width != target_width:
+            logger.verbose("File {file} not target width {target_width}, current width {current_width}"
+                           .format(file=image.path, target_width=target_width, current_width=image.width))
+            image.path = _copy_to_temp(image.path, temp_directory)
+            imgmag.resize_width(target_width, image.path)
+            image.width = target_width
+
+    pass
 
 
 def _ensure_directory(output_directory, clean):
