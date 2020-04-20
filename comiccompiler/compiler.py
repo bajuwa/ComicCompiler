@@ -37,8 +37,18 @@ def run(args):
         return
 
     temp_directory = tempfile.mkdtemp(prefix="comicom")
-
     _ensure_consistent_width(args.output_file_width, images, temp_directory)
+
+    if args.enable_stitch_check:
+        found_mismatch = False
+        logger.info("Checking to make sure input image connections match...")
+        for index in range(0, len(images)-1):
+            if check_stitch_connections_match(images[index], images[index + 1]):
+                found_mismatch = True
+        if found_mismatch:
+            shutil.rmtree(temp_directory)
+            return
+
     _ensure_directory(args.output_directory, args.clean)
     _combine_images(images, args.output_directory, args.output_file_prefix, args.output_file_starting_number,
                     args.extension, args.min_height_per_page, args.output_file_width, args.breakpoint_detection_mode,
@@ -111,9 +121,23 @@ def _ensure_consistent_width(target_width, images, temp_directory):
                            .format(file=image.path, target_width=target_width, current_width=image.width))
             image.path = _copy_to_temp(image.path, temp_directory)
             imgmag.resize_width(target_width, image.path)
-            image.width = target_width
+            image.width = imgmag.get_image_width(image.path)
+            image.height = imgmag.get_image_height(image.path)
 
     pass
+
+
+def check_stitch_connections_match(prev_image, next_image):
+    prev_image_sample = imgmag.get_file_sample_string(prev_image.path, width=prev_image.width, y_offset=prev_image.height-1)
+    next_image_sample = imgmag.get_file_sample_string(next_image.path, width=next_image.width)
+    if not imgmag.almost_matches(prev_image_sample, next_image_sample):
+        logger.info("[ERROR] Two consecutive images do not appear to end/start with the same colours/pattern, "
+                    "check to make sure you're not missing an image or are including title/credit pages\n"
+                    "First image: {}\n"
+                    "Second image: {}"
+                    .format(prev_image.path, next_image.path))
+        return True
+    return False
 
 
 def _ensure_directory(output_directory, clean):

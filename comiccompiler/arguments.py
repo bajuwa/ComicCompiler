@@ -70,6 +70,9 @@ def parse(input=None):
     parser.add_argument("--gui", action="store_true", help="Opens a GUI prepopulated with the given arguments")
     parser.add_argument("--disable-input-sort", action="store_true",
                         help="Prevent the input list from being resorted alphanumerically prior to stitching.")
+    parser.add_argument("--enable-stitch-check", action="store_true",
+                        help="Prevent the input list from being scanned and checked for images that do not appear to "
+                             "have matching connections.")
 
     if input is None:
         args = parser.parse_args()
