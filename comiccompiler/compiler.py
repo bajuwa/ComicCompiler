@@ -119,8 +119,8 @@ def _ensure_consistent_width(target_width, images, temp_directory):
 
     for image in images:
         if image.width != target_width:
-            logger.verbose("File {file} not target width {target_width}, current width {current_width}"
-                           .format(file=image.path, target_width=target_width, current_width=image.width))
+            logger.warn("File {file} not target width {target_width}, current width {current_width}, resizing..."
+                        .format(file=image.path, target_width=target_width, current_width=image.width))
             image.path = _copy_to_temp(image.path, temp_directory)
             imgmag.resize_width(target_width, image.path)
             image.width = imgmag.get_image_width(image.path)
@@ -133,11 +133,11 @@ def check_stitch_connections_match(prev_image, next_image):
     prev_image_sample = imgmag.get_file_sample_string(prev_image.path, width=prev_image.width, y_offset=prev_image.height-1)
     next_image_sample = imgmag.get_file_sample_string(next_image.path, width=next_image.width)
     if not imgmag.almost_matches(prev_image_sample, next_image_sample):
-        logger.info("[ERROR] Two consecutive images do not appear to end/start with the same colours/pattern, "
-                    "check to make sure you're not missing an image or are including title/credit pages\n"
-                    "First image: {}\n"
-                    "Second image: {}"
-                    .format(prev_image.path, next_image.path))
+        logger.error("Two consecutive images do not appear to end/start with the same colours/pattern, "
+                     "check to make sure you're not missing an image or are including title/credit pages\n"
+                     "First image: {}\n"
+                     "Second image: {}"
+                     .format(prev_image.path, next_image.path))
         return True
     return False
 
@@ -275,6 +275,6 @@ def _post_process_pages(pages, expected_min_height):
     max_height_to_warn = expected_min_height * 1.8
     for page in pages:
         if page.calculate_cropped_height() >= max_height_to_warn:
-            logger.info("[WARNING] Seems like you've got some pages that are much longer than your configured minimum "
+            logger.warn("Seems like you've got some pages that are much longer than your configured minimum "
                         "height.  Check out our wiki's FAQ for ways to fix this\n"
                         "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-FAQ#troubleshooting-compiled-pages")

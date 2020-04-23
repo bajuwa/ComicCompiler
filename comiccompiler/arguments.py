@@ -62,8 +62,10 @@ def parse(input=None):
                         help="If set, after the new pages are compiled the program will open the directory it was working "
                              "in via windows explorer.")
 
-    parser.add_argument("-l", "--logging-level", default=0, type=int,
-                        help="Sets logging level [0 for basic, 1 for debug, 2 for verbose]")
+    parser.add_argument("-l", "--logging-level", default=2, type=int, help="Sets logging level")
+    parser.add_argument("--error", action="store_true", help="Turns on error level logging")
+    parser.add_argument("--info", action="store_true", help="Turns on info level logging")
+    parser.add_argument("--warn", action="store_true", help="Turns on warn level logging")
     parser.add_argument("--debug", action="store_true", help="Turns on debug level logging")
     parser.add_argument("--verbose", action="store_true", help="Turns on verbose level logging")
 
@@ -82,10 +84,17 @@ def parse(input=None):
         args = parser.parse_args(args=shlex.split(input))
 
     args.split_on_colour += args.additional_split_on_colour
-    if args.debug:
+
+    if args.error:
+        args.logging_level = 0
+    if args.info:
         args.logging_level = 1
-    if args.verbose:
+    if args.warn:
         args.logging_level = 2
+    if args.debug:
+        args.logging_level = 3
+    if args.verbose:
+        args.logging_level = 4
 
     if args.input_files is None or len(args.input_files) == 0:
         args.input_files = [args.input_file_directory + "image*" + args.extension]

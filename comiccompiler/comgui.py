@@ -105,7 +105,7 @@ class MainWindow(tk.Frame):
     def _run(self):
         try:
             if self.input_frame.input_files.get() == "":
-                logger.info("Error: Must select input files or directory")
+                logger.error("Must select input files or directory")
                 return
 
             self._run_and_log(self.get_args())
