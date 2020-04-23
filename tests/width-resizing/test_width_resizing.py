@@ -4,7 +4,7 @@ import tests
 from comiccompiler import compiler
 
 
-class InputSortingTest(tests.ComicomTestCase):
+class WidthResizingTest(tests.ComicomTestCase):
     def test_default_args(self):
         self.setup_test_vars("width-resizing", "Compiled-default")
         compiler.run(self.args)
