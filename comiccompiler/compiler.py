@@ -50,10 +50,12 @@ def run(args):
             return
 
     _ensure_directory(args.output_directory, args.clean)
-    _combine_images(images, args.output_directory, args.output_file_prefix, args.output_file_starting_number,
+    pages = _combine_images(images, args.output_directory, args.output_file_prefix, args.output_file_starting_number,
                     args.extension, args.min_height_per_page, args.output_file_width, args.breakpoint_detection_mode,
                     args.break_points_increment, args.break_points_multiplier, args.split_on_colour,
                     args.colour_error_tolerance, args.colour_standard_deviation)
+
+    _post_process_pages(pages, args.min_height_per_page)
 
     shutil.rmtree(temp_directory)
 
@@ -267,3 +269,12 @@ def _combine_images(images, output_directory, output_file_prefix, output_file_st
         logger.debug("")
 
     return pages
+
+
+def _post_process_pages(pages, expected_min_height):
+    max_height_to_warn = expected_min_height * 1.8
+    for page in pages:
+        if page.calculate_cropped_height() >= max_height_to_warn:
+            logger.info("[WARNING] Seems like you've got some pages that are much longer than your configured minimum "
+                        "height.  Check out our wiki's FAQ for ways to fix this\n"
+                        "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-FAQ#troubleshooting-compiled-pages")
