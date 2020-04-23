@@ -29,7 +29,7 @@ class ComicomTestCase(unittest.TestCase):
 
         self.assertEqual(len(actual_files), len(expected_files), "Output file count did not match")
         for i in range(0, len(actual_files)):
-            self.assertTrue(imgmag.matches(actual_files[i], expected_files[i]),
+            self.assertTrue(imgmag.almost_matches(actual_files[i], expected_files[i]),
                             "Output file content mismatch: " + actual_files[i])
 
     def get_expected_files(self):

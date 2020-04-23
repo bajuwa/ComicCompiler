@@ -16,9 +16,19 @@ REDIRECT_LOGS = True
 
 command_line_documentation = "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(" \
                              "Python-Version)#command-line-arguments "
-                             
- 
+
+
 thread_pool_executor = futures.ThreadPoolExecutor(max_workers=1)
+
+
+def input_list(entry, items):
+    entry.delete(0, tk.END)
+    if items is not None:
+        entry.insert(0, " ".join(map(lambda item: trim_and_quote(item), items)))
+
+
+def extract_list(entry):
+    return entry.get().split(" ")
 
 
 class MainWindow(tk.Frame):
@@ -32,28 +42,28 @@ class MainWindow(tk.Frame):
         self.master.title("Comic Compiler (by bajuwa)")
         self.master.resizable(False, False)
         self.grid_columnconfigure(1, weight=1)
-        self.grid(pady=5, padx=5)
+        self.grid(pady=3, padx=3)
 
         self.info_profiles_frame = InfoAndProfilesFrame(self.get_args, self.populate_args_from_text, master)
-        self.info_profiles_frame.grid(columnspan=2, row=0, sticky="we", pady=5, padx=5)
+        self.info_profiles_frame.grid(columnspan=2, row=0, sticky="we", pady=3, padx=3)
 
         self.input_frame = InputFrame(master)
-        self.input_frame.grid(columnspan=2, row=1, sticky="we", pady=5, padx=5)
+        self.input_frame.grid(columnspan=2, row=1, sticky="we", pady=3, padx=3)
 
         self.output_frame = OutputFrame(master)
-        self.output_frame.grid(columnspan=2, row=2, sticky="we", pady=5, padx=5)
+        self.output_frame.grid(columnspan=2, row=2, sticky="we", pady=3, padx=3)
 
         self.page_config_frame = PageConfigFrame(master)
-        self.page_config_frame.grid(column=0, row=3, sticky="we", pady=5, padx=5)
+        self.page_config_frame.grid(column=0, row=3, sticky="we", pady=3, padx=3)
 
         self.breakpoint_config_frame = BreakpointConfigFrame(master)
-        self.breakpoint_config_frame.grid(column=0, row=4, sticky="we", pady=5, padx=5)
+        self.breakpoint_config_frame.grid(column=0, row=4, sticky="we", pady=3, padx=3)
 
         self.run_frame = RunFrame(self._run_on_thread, master)
-        self.run_frame.grid(column=0, row=5, sticky="we", pady=5, padx=5)
+        self.run_frame.grid(column=0, row=5, sticky="we", pady=3, padx=3)
 
         self.logging_frame = LoggingFrame(master)
-        self.logging_frame.grid(column=1, row=3, rowspan=6, sticky="nwse", pady=5, padx=5)
+        self.logging_frame.grid(column=1, row=3, rowspan=6, sticky="nwse", pady=3, padx=3)
 
     def populate_args_from_text(self, args):
         self.populate_args(arguments.parse(args))
@@ -118,25 +128,25 @@ class InfoAndProfilesFrame(tk.Frame):
         self.get_args = get_args
         self.populate_args_from_text = populate_args_from_text
 
-        tk.Label(self, text="Confused?").grid(row=0, column=0, pady=5, padx=5)
+        tk.Label(self, text="Confused?").grid(row=0, column=0, pady=3, padx=3)
         wiki_link = tk.Label(self, text="Check out the wiki", fg="blue", cursor="hand2", anchor="w")
-        wiki_link.grid(row=0, column=1, sticky="we", pady=5, padx=5)
+        wiki_link.grid(row=0, column=1, sticky="we", pady=3, padx=3)
         wiki_link.bind("<Button-1>", lambda e: webbrowser.open_new(
             "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)"))
 
-        tk.Label(self, text="Profile:").grid(row=0, column=2, pady=5, padx=5)
+        tk.Label(self, text="Profile:").grid(row=0, column=2, pady=3, padx=3)
 
         self.profile_options = profiles.get_profile_names()
         self.profile_choice = tk.StringVar(self.master)
         self.profile_choice.trace('w', self.load_profile)
         self.profile_name = tk.OptionMenu(self, self.profile_choice, *self.profile_options)
-        self.profile_name.grid(column=3, row=0, pady=5, padx=5)
+        self.profile_name.grid(column=3, row=0, pady=3, padx=3)
 
         button = tk.Button(self, text="Save As...", command=lambda: self.save_profile())
-        button.grid(column=4, row=0, pady=5, padx=5)
+        button.grid(column=4, row=0, pady=3, padx=3)
 
         button = tk.Button(self, text="Delete", command=lambda: self.delete_profile())
-        button.grid(column=5, row=0, pady=5, padx=5)
+        button.grid(column=5, row=0, pady=3, padx=3)
 
     def clear_profile_selection(self):
         self.profile_choice.set("Default")
@@ -177,22 +187,20 @@ class InputFrame(tk.LabelFrame):
         tk.LabelFrame.__init__(self, master, text="Input Files")
         self.grid_columnconfigure(0, weight=1)
         self.input_files = tk.Entry(self)
-        self.input_files.grid(row=0, sticky='we', pady=5, padx=5)
+        self.input_files.grid(row=0, sticky='we', pady=3, padx=3)
         button = tk.Button(self, text="Import From Folder", command=lambda: self.select_directory())
-        button.grid(column=1, row=0, pady=5, padx=5)
+        button.grid(column=1, row=0, pady=3, padx=3)
         button = tk.Button(self, text="Import Files", command=lambda: self.select_files())
-        button.grid(column=2, row=0, pady=5, padx=5)
+        button.grid(column=2, row=0, pady=3, padx=3)
         WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#input-files")\
-            .grid(column=3, row=0, pady=5, padx=5)
+            .grid(column=3, row=0, pady=3, padx=3)
         pass
 
     def populate_args(self, args):
-        self.input_files.delete(0, tk.END)
-        if args.input_files is not None:
-            self.input_files.insert(0, " ".join(args.input_files))
+        input_list(self.input_files, args.input_files)
 
     def get_args(self):
-        return format_as_argument("-f", self.input_files.get())
+        return format_as_argument("-f", extract_list(self.input_files))
 
     def select_directory(self):
         directory = filedialog.askdirectory(
@@ -200,14 +208,13 @@ class InputFrame(tk.LabelFrame):
         )
         if os.path.isdir(directory):
             self.input_files.delete(0, tk.END)
-            self.input_files.insert(0, directory + "/*.*")
+            self.input_files.insert(0, trim_and_quote(directory + "/*.*"))
 
     def select_files(self):
         files = filedialog.askopenfilenames(
             title="Select files to combine..."
         )
-        self.input_files.delete(0, tk.END)
-        self.input_files.insert(0, files)
+        input_list(self.input_files, files)
 
 
 class OutputFrame(tk.LabelFrame):
@@ -215,19 +222,19 @@ class OutputFrame(tk.LabelFrame):
         tk.LabelFrame.__init__(self, master, text="Output Directory")
         self.grid_columnconfigure(0, weight=1)
         self.output_directory = tk.Entry(self)
-        self.output_directory.grid(column=0, row=0, sticky='we', pady=5, padx=5)
+        self.output_directory.grid(column=0, row=0, sticky='we', pady=3, padx=3)
         button = tk.Button(self, text="Browse", command=lambda: self.select_directory())
-        button.grid(column=1, row=0, sticky='we', pady=5, padx=5)
+        button.grid(column=1, row=0, sticky='we', pady=3, padx=3)
         button.bind('<Return>', lambda e: self.select_directory())
         WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#output-directory") \
-            .grid(column=3, row=0, pady=5, padx=5)
+            .grid(column=3, row=0, pady=3, padx=3)
 
     def populate_args(self, args):
         self.output_directory.delete(0, tk.END)
         if args.output_directory.endswith("/"):
-            self.output_directory.insert(0, args.output_directory)
+            self.output_directory.insert(0, trim_and_quote(args.output_directory))
         else:
-            self.output_directory.insert(0, args.output_directory + "/")
+            self.output_directory.insert(0, trim_and_quote(args.output_directory + "/"))
 
     def get_args(self):
         return format_as_argument("-od", self.output_directory.get())
@@ -247,32 +254,32 @@ class PageConfigFrame(tk.LabelFrame):
         tk.LabelFrame.__init__(self, master, text="Output Pages")
         self.grid_columnconfigure(1, weight=1)
 
-        tk.Label(self, text="Page Names:").grid(row=0, column=0, pady=5, padx=5)
+        tk.Label(self, text="Page Names:").grid(row=0, column=0, pady=3, padx=3)
         self.output_file_prefix = tk.Entry(self, width=15, justify='right')
-        self.output_file_prefix.grid(row=0, column=1, sticky='we', pady=5, padx=5)
-        tk.Label(self, text="###", width=2).grid(row=0, column=2, pady=5, padx=5)
+        self.output_file_prefix.grid(row=0, column=1, sticky='we', pady=3, padx=3)
+        tk.Label(self, text="###", width=2).grid(row=0, column=2, pady=3, padx=3)
         self.extension = tk.Entry(self, width=5, justify='left')
-        self.extension.grid(row=0, column=3, sticky='we', pady=5, padx=5)
+        self.extension.grid(row=0, column=3, sticky='we', pady=3, padx=3)
         WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#output-page-file-prefix") \
-            .grid(column=5, row=0, pady=5, padx=5)
+            .grid(column=5, row=0, pady=3, padx=3)
 
-        tk.Label(self, text="Starting Number:").grid(row=1, column=0, pady=5, padx=5)
+        tk.Label(self, text="Starting Number:").grid(row=1, column=0, pady=3, padx=3)
         self.output_file_starting_number = tk.Entry(self)
-        self.output_file_starting_number.grid(row=1, column=1, columnspan=3, sticky='we', pady=5, padx=5)
+        self.output_file_starting_number.grid(row=1, column=1, columnspan=3, sticky='we', pady=3, padx=3)
         WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#output-page-starting-number") \
-            .grid(column=5, row=1, pady=5, padx=5)
+            .grid(column=5, row=1, pady=3, padx=3)
 
-        tk.Label(self, text="Page Width:").grid(row=2, column=0, pady=5, padx=5)
+        tk.Label(self, text="Page Width:").grid(row=2, column=0, pady=3, padx=3)
         self.output_file_width = tk.Entry(self)
-        self.output_file_width.grid(row=2, column=1, columnspan=3, sticky='we', pady=5, padx=5)
+        self.output_file_width.grid(row=2, column=1, columnspan=3, sticky='we', pady=3, padx=3)
         WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#output-page-width") \
-            .grid(column=5, row=2, pady=5, padx=5)
+            .grid(column=5, row=2, pady=3, padx=3)
 
-        tk.Label(self, text="Minimum Height:").grid(row=3, column=0, pady=5, padx=5)
+        tk.Label(self, text="Minimum Height:").grid(row=3, column=0, pady=3, padx=3)
         self.min_height_per_page = tk.Entry(self)
-        self.min_height_per_page.grid(row=3, column=1, columnspan=3, sticky='we', pady=5, padx=5)
+        self.min_height_per_page.grid(row=3, column=1, columnspan=3, sticky='we', pady=3, padx=3)
         WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#minimum-height-per-page") \
-            .grid(column=5, row=3, pady=5, padx=5)
+            .grid(column=5, row=3, pady=3, padx=3)
         pass
 
     def populate_args(self, args):
@@ -298,53 +305,53 @@ class PageConfigFrame(tk.LabelFrame):
 
 class BreakpointConfigFrame(tk.LabelFrame):
     colour_options_map = {
-        "Solid Black/White" : ["0 65535", "0", "0"], 
-        "Any Solid Colour" : ["0", "65535", "0"], 
-        "Non-solid B/W" : ["0 65535", "10000", "1000"], 
-        "Non-solid Colour" : ["0", "65535", "1000"]
+        "Solid Black/White": ["0 65535", "0", "0"],
+        "Any Solid Colour": ["0", "65535", "0"],
+        "Non-solid B/W": ["0 65535", "10000", "1000"],
+        "Non-solid Colour": ["0", "65535", "1000"]
     }
 
     def __init__(self, master=None):
         tk.LabelFrame.__init__(self, master, text="Breakpoints")
         self.grid_columnconfigure(1, weight=1)
 
-        tk.Label(self, text="Breakpoint Mode:").grid(row=0, column=0, pady=5, padx=5)
+        tk.Label(self, text="Breakpoint Mode:").grid(row=0, column=0, pady=3, padx=3)
         self.breakpoint_options = ["End of File", "Dynamic Search"]
         self.breakpoint_choice = tk.StringVar(self.master)
         self.breakpoint_choice.set(self.breakpoint_options[0])
         self.breakpoint_detection_mode = tk.OptionMenu(self, self.breakpoint_choice, *self.breakpoint_options)
-        self.breakpoint_detection_mode.grid(row=0, column=1, sticky='we', pady=5, padx=5)
+        self.breakpoint_detection_mode.grid(row=0, column=1, sticky='we', pady=3, padx=3)
         WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#breakpoint-detection-mode") \
-            .grid(column=3, row=0, pady=5, padx=5)
+            .grid(column=3, row=0, pady=3, padx=3)
 
-        tk.Label(self, text="Colour Presets:").grid(row=1, column=0, pady=5, padx=5)
+        tk.Label(self, text="Colour Presets:").grid(row=1, column=0, pady=3, padx=3)
         self.colour_options = [""]
         self.colour_options += self.colour_options_map.keys()
         self.colour_choice = tk.StringVar(self.master)
-        self.colour_choice.trace('w', self.load_colour_preset)
         self.colour_choice.set(self.colour_options[0])
+        self.colour_choice.trace('w', self.load_colour_preset)
         self.colour_preset = tk.OptionMenu(self, self.colour_choice, *self.colour_options)
-        self.colour_preset.grid(row=1, column=1, sticky='we', pady=5, padx=5)
+        self.colour_preset.grid(row=1, column=1, sticky='we', pady=3, padx=3)
 
-        tk.Label(self, text="Split on Colours:").grid(row=2, column=0, pady=5, padx=5)
+        tk.Label(self, text="Split on Colours:").grid(row=2, column=0, pady=3, padx=3)
         self.split_on_colour = tk.Entry(self)
-        self.split_on_colour.grid(row=2, column=1, sticky='we', pady=5, padx=5)
+        self.split_on_colour.grid(row=2, column=1, sticky='we', pady=3, padx=3)
         WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#split-pages-on-colours") \
-            .grid(column=3, row=2, pady=5, padx=5)
+            .grid(column=3, row=2, pady=3, padx=3)
 
-        tk.Label(self, text="Error Tolerance:").grid(row=3, column=0, pady=5, padx=5)
+        tk.Label(self, text="Error Tolerance:").grid(row=3, column=0, pady=3, padx=3)
         self.colour_error_tolerance = tk.Entry(self)
-        self.colour_error_tolerance.grid(row=3, column=1, sticky='we', pady=5, padx=5)
+        self.colour_error_tolerance.grid(row=3, column=1, sticky='we', pady=3, padx=3)
         WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#colour-split-error-tolerance") \
-            .grid(column=3, row=3, pady=5, padx=5)
+            .grid(column=3, row=3, pady=3, padx=3)
 
-        tk.Label(self, text="Standard Deviation:").grid(row=4, column=0, pady=5, padx=5)
+        tk.Label(self, text="Standard Deviation:").grid(row=4, column=0, pady=3, padx=3)
         self.colour_standard_deviation = tk.Entry(self)
-        self.colour_standard_deviation.grid(row=4, column=1, sticky='we', pady=5, padx=5)
+        self.colour_standard_deviation.grid(row=4, column=1, sticky='we', pady=3, padx=3)
         WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#colour-split-standard-deviation") \
-            .grid(column=3, row=4, pady=5, padx=5)
+            .grid(column=3, row=4, pady=3, padx=3)
         pass
-        
+
     def load_colour_preset(self, *args):
         self.split_on_colour.delete(0, tk.END)
         self.split_on_colour.insert(0, self.colour_options_map[self.colour_choice.get()][0])
@@ -374,43 +381,57 @@ class RunFrame(tk.LabelFrame):
         tk.LabelFrame.__init__(self, master, text="Run")
         self.grid_columnconfigure(3, weight=1)
 
-        self.is_clean = tk.IntVar()
-        self.clean = tk.Checkbutton(self, text="Clean", variable=self.is_clean)
-        self.clean.grid(column=0, row=0, sticky='we', pady=5, padx=5)
+        self.will_sort_input = tk.BooleanVar()
+        self.sort_input = tk.Checkbutton(self, text="Sort input files before stitching", variable=self.will_sort_input,
+                                         anchor="w")
+        self.sort_input.grid(column=0, row=0, columnspan=4, sticky='we', pady=3, padx=3)
 
-        self.is_open = tk.IntVar()
+        self.will_check_stitching = tk.BooleanVar()
+        self.check_stitching = tk.Checkbutton(self, text="Abort if edges between input images do not match"
+                                              , variable=self.will_check_stitching, anchor="w")
+        self.check_stitching.grid(column=0, row=1, columnspan=4, sticky='we', pady=3, padx=3)
+
+        self.is_clean = tk.BooleanVar()
+        self.clean = tk.Checkbutton(self, text="Clean", variable=self.is_clean)
+        self.clean.grid(column=0, row=2, sticky='we', pady=3, padx=3)
+
+        self.is_open = tk.BooleanVar()
         self.open = tk.Checkbutton(self, text="Open", variable=self.is_open)
-        self.open.grid(column=1, row=0, sticky='we', pady=5, padx=5)
+        self.open.grid(column=1, row=2, sticky='we', pady=3, padx=3)
 
         self.logging_options = ["Info", "Debug", "Verbose"]
         self.logging_choice = tk.StringVar(self.master)
         self.logging_choice.set(self.logging_options[0])
         self.logging_level = tk.OptionMenu(self, self.logging_choice, *self.logging_options)
-        self.logging_level.grid(column=2, row=0, sticky='we', pady=5, padx=5)
+        self.logging_level.grid(column=2, row=2, sticky='we', pady=3, padx=3)
 
         self.run_button_text = tk.StringVar()
         self.run_button_text.set("Run")
         self.run_button = tk.Button(self, textvariable=self.run_button_text, command=lambda: submit_func(),
                                font=font.Font(family='Helvetica', size=10, weight=font.BOLD))
-        self.run_button.grid(column=3, row=0, sticky='we', pady=5, padx=5)
+        self.run_button.grid(column=3, row=2, sticky='we', pady=3, padx=3)
         self.run_button.bind('<Return>', lambda e: submit_func())
-        
+
     def started_running(self):
         #self.run_button_text.set("Cancel")
         self.run_button.config(state="disabled")
-        
+
     def finished_running(self, *args):
         #self.run_button_text.set("Run")
         self.run_button.config(state="active")
 
     def populate_args(self, args):
         self.logging_choice.set(self.logging_options[args.logging_level])
-        self.is_open.set(1 if args.open else 0)
-        self.is_clean.set(1 if args.clean else 0)
+        self.will_sort_input.set(not args.disable_input_sort)
+        self.will_check_stitching.set(args.enable_stitch_check)
+        self.is_open.set(args.open)
+        self.is_clean.set(args.clean)
 
     def get_args(self):
-        return format_bool_as_argument("--clean", self.is_clean.get() == 1) + \
-               format_bool_as_argument("--open", self.is_open.get() == 1) + \
+        return format_as_argument("--clean", self.is_clean.get()) + \
+               format_as_argument("--open", self.is_open.get()) + \
+               format_as_argument("--disable-input-sort", not self.will_sort_input.get()) + \
+               format_as_argument("--enable-stitch-check", self.will_check_stitching.get()) + \
                format_as_argument("--logging-level", self.logging_options.index(self.logging_choice.get()))
 
 
@@ -418,8 +439,9 @@ class LoggingFrame(tk.Frame):
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
         # show the program output when run
+        self.grid_rowconfigure(0, weight=1)
         self.output_terminal = tk.Text(self, width=60)
-        self.output_terminal.grid(sticky="nesw", pady=5, padx=5)
+        self.output_terminal.grid(sticky="nesw", pady=3, padx=3)
         self.output_terminal.configure(state='disabled')
         if REDIRECT_LOGS:
             sys.stdout = StdoutRedirector(self.output_terminal)
@@ -452,27 +474,21 @@ class StdoutRedirector(object):
         self.text_space.update_idletasks()
 
 
+def trim_and_quote(item):
+    string = str(item).strip()
+    if " " in string:
+        return '"' + string + '"'
+    return string
+
+
 def format_as_argument(tag, arg):
     # Beware of issue #16 where spaces in file names cause problems on input
-    if arg != "" and arg is not None:
-        return " " + str(tag) + " " + str(arg)
+    if arg is not None:
+        if isinstance(arg, list):
+            return " " + tag + " " + " ".join(list(map(lambda item: trim_and_quote(item), arg)))
+        if isinstance(arg, bool):
+            if arg:
+                return " " + tag
+        elif arg != "":
+            return " " + str(tag) + ' ' + str(arg)
     return ""
-
-
-def format_list_as_argument(tag, arg_list):
-    # Beware of issue #16 where spaces in file names cause problems on input
-    if arg_list is not None and len(arg_list) > 0:
-        return " " + tag + " " + " ".join(arg_list)
-    return ""
-
-
-def format_bool_as_argument(tag, arg):
-    if arg:
-        return " " + tag
-    return ""
-
-
-def empty_to_none(param, on_empty):
-    if param == "" or param is None:
-        return on_empty
-    return param
