@@ -6,7 +6,8 @@ from . import logger
 # Try to avoid calling command other than imgmag ones in order to prevent cross-os problems
 def _command(command):
     # print("Running command: " + command)
-    process = subprocess.Popen(command, shell=True, close_fds=True, universal_newlines=True,
+    # For whatever reason, close_fds=True causes the program to run reeaaally slowly. Like 2x as slow.
+    process = subprocess.Popen(command, shell=True, close_fds=False, universal_newlines=True,
                                stdin=subprocess.PIPE, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
     out, err = process.communicate()
     return out
