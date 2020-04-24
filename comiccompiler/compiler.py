@@ -5,6 +5,8 @@ import shutil
 import glob
 import natsort
 
+from PIL import Image
+
 from . import imgmag
 from . import entities
 from . import logger
@@ -37,17 +39,9 @@ def run(args):
         return
 
     temp_directory = tempfile.mkdtemp(prefix="comicom")
-    _ensure_consistent_width(args.output_file_width, images, temp_directory)
-
-    if args.enable_stitch_check:
-        found_mismatch = False
-        logger.info("Checking to make sure input image connections match...")
-        for index in range(0, len(images)-1):
-            if check_stitch_connections_match(images[index], images[index + 1]):
-                found_mismatch = True
-        if found_mismatch:
-            shutil.rmtree(temp_directory)
-            return
+    if not _pre_process_images(images, temp_directory, args.enable_stitch_check, args.output_file_width):
+        _cleanup(images, temp_directory)
+        return
 
     _ensure_directory(args.output_directory, args.clean)
     pages = _combine_images(images, args.output_directory, args.output_file_prefix, args.output_file_starting_number,
@@ -57,7 +51,7 @@ def run(args):
 
     _post_process_pages(pages, args.min_height_per_page)
 
-    shutil.rmtree(temp_directory)
+    _cleanup(images, temp_directory)
 
     end = time.time()
     total_time = end - start
@@ -76,6 +70,12 @@ def run(args):
     pass
 
 
+def _cleanup(images, temp_directory):
+    for image in images:
+        image.close()
+    shutil.rmtree(temp_directory)
+
+
 def _get_input_images(input_file_patterns, enable_input_sort):
     logger.verbose("Getting images that match patterns: " +
                    " ".join(map(lambda image: str(image), input_file_patterns)))
@@ -91,17 +91,34 @@ def _get_input_images(input_file_patterns, enable_input_sort):
     for i in range(len(image_paths)):
         if i % 5 == 0:
             logger.inline_progress()
-        image = entities.Image()
-        image.path = image_paths[i]
-        image.batch_index = i
-        image.width = imgmag.get_image_width(image.path)
-        image.height = imgmag.get_image_height(image.path)
-        images.append(image)
 
-    logger.verbose("Found images: " + " ".join(map(lambda image: str(image), images)))
+        try:
+            image = Image.open(image_paths[i])
+            image.info["batch_index"] = i
+            image.info["path"] = image_paths[i]
+            images.append(image)
+        except IOError:
+            logger.warn("Found input file that was not an image, skipping: " + image_paths[i])
+            continue
+
+    logger.verbose("Found images: " + " ".join(map(lambda image: image.info["path"], images)))
     logger.inline("Loaded {img_count} images.".format(img_count=len(images)))
     logger.info("")
     return images
+
+
+def _pre_process_images(images, temp_directory, enable_stitch_check, output_file_width):
+    succeeded = True
+
+    _ensure_consistent_width(output_file_width, images, temp_directory)
+
+    if enable_stitch_check:
+        logger.info("Checking to make sure input image connections match...")
+        for index in range(0, len(images)-1):
+            if check_stitch_connections_match(images[index], images[index + 1]):
+                succeeded = False
+
+    return succeeded
 
 
 def _copy_to_temp(path, temp_directory):
@@ -117,27 +134,32 @@ def _ensure_consistent_width(target_width, images, temp_directory):
 
     logger.info("Checking input images are target width: " + str(target_width))
 
-    for image in images:
+    for i in range(0, len(images)):
+        image = images[i]
         if image.width != target_width:
             logger.warn("File {file} not target width {target_width}, current width {current_width}, resizing..."
-                        .format(file=image.path, target_width=target_width, current_width=image.width))
-            image.path = _copy_to_temp(image.path, temp_directory)
-            imgmag.resize_width(target_width, image.path)
-            image.width = imgmag.get_image_width(image.path)
-            image.height = imgmag.get_image_height(image.path)
+                        .format(file=image.info["path"], target_width=target_width, current_width=image.width))
+            old_image_info = image.info.copy()
+            image.close()
+            new_path = _copy_to_temp(image.info["path"], temp_directory)
+            imgmag.resize_width(target_width, new_path)
+            images[i] = Image.open(new_path)
+            images[i].info = old_image_info
+            images[i].info["path"] = new_path
+            logger.debug("Resized file: " + images[i].info["path"])
 
     pass
 
 
 def check_stitch_connections_match(prev_image, next_image):
-    prev_image_sample = imgmag.get_file_sample_string(prev_image.path, width=prev_image.width, y_offset=prev_image.height-1)
-    next_image_sample = imgmag.get_file_sample_string(next_image.path, width=next_image.width)
+    prev_image_sample = imgmag.get_file_sample_string(prev_image.info["path"], width=prev_image.width, y_offset=prev_image.height-1)
+    next_image_sample = imgmag.get_file_sample_string(next_image.info["path"], width=next_image.width)
     if not imgmag.almost_matches(prev_image_sample, next_image_sample):
         logger.error("Two consecutive images do not appear to end/start with the same colours/pattern, "
                      "check to make sure you're not missing an image or are including title/credit pages\n"
                      "First image: {}\n"
                      "Second image: {}"
-                     .format(prev_image.path, next_image.path))
+                     .format(prev_image.info["path"], next_image.info["path"]))
         return True
     return False
 
@@ -172,12 +194,12 @@ def _define_page(page, images, min_height_per_page, breakpoint_detection_mode, s
 
     for image in images:
         logger.inline_progress()
-        logger.verbose("Current image : " + str(image))
+        logger.verbose("Current image : " + image.info["path"])
 
         page.add_image(image)
 
         # should probably look at having this be the area for 'orphan adoption'
-        if image == images[len(images) - 1]:
+        if image.info["path"] == images[len(images) - 1].info["path"]:
             continue
 
         # Check if totalHeight + thisImagesHeight > minRequiredHeight
@@ -191,9 +213,9 @@ def _define_page(page, images, min_height_per_page, breakpoint_detection_mode, s
             continue
 
         logger.debug("Reached min page height {min_height}, checking for breakpoint in {image}"
-                     .format(min_height=min_height_per_page, image=image.path))
+                     .format(min_height=min_height_per_page, image=image.info["path"]))
         if breakpoint_detection_mode == 1:
-            logger.inline("Searching for breakpoint in '{0}'".format(image.path))
+            logger.inline("Searching for breakpoint in '{0}'".format(image.info["path"]))
             breakpoint_row = _find_breakpoint(page, image, min_height_per_page, break_points_increment,
                                               break_points_multiplier, split_on_colour, colour_error_tolerance,
                                               colour_standard_deviation)
@@ -208,7 +230,7 @@ def _define_page(page, images, min_height_per_page, breakpoint_detection_mode, s
 
 
 def _get_image_paths(images):
-    return list(map(lambda image: image.path, images))
+    return list(map(lambda image: image.info["path"], images))
 
 
 def _stitch_page(page, output_directory):

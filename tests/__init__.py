@@ -22,6 +22,7 @@ class ComicomTestCase(unittest.TestCase):
         self.args.input_files = [self.base_path + "input/*.jpg"]
         self.args.output_directory = self.base_path + self.actual_output_folder + os.sep
         self.args.clean = True
+        # self.args.logging_level = 5
 
     def compare_output(self):
         expected_files = self.get_expected_files()

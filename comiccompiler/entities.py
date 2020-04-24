@@ -1,17 +1,4 @@
-class Image:
-    def __init__(self):
-        self.path = None
-        self.batch_index = None
-        self.width = None
-        self.height = None
-
-    def __str__(self):
-        return "Image{" \
-               "path = " + self.path + \
-               ", batch_index = " + str(self.batch_index) + \
-               ", width = " + str(self.width) + \
-               ", height = " + str(self.height) + \
-               "}"
+from PIL import Image
 
 
 class Page:
@@ -35,12 +22,12 @@ class Page:
 
     def get_first_image_index(self):
         if self.image_count() > 0:
-            return self.images[0].batch_index
+            return self.images[0].info["batch_index"]
         return None
 
     def get_last_image_index(self):
         if self.image_count() > 0:
-            return self.images[self.image_count()-1].batch_index
+            return self.images[self.image_count()-1].info["batch_index"]
         return None
 
     def calculate_uncropped_height(self):
