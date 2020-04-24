@@ -50,6 +50,13 @@ def run(args):
     min_pixel_height_per_page = _recalculate_height_relative_to_images(str(args.min_height_per_page), images)
     min_pixel_height_last_page = _recalculate_height_relative_to_images(str(args.min_height_last_page), images)
 
+    if args.breakpoint_detection_mode < 0:
+        args.breakpoint_detection_mode = _predict_appropriate_breakpoint_mode(images,
+                                                                              min_pixel_height_per_page,
+                                                                              args.split_on_colour,
+                                                                              args.colour_error_tolerance,
+                                                                              args.colour_standard_deviation)
+
     pages = _combine_images(images, args.output_directory, args.output_file_prefix, args.output_file_starting_number,
                     args.extension, min_pixel_height_per_page, args.output_file_width, args.breakpoint_detection_mode,
                     args.break_points_increment, args.break_points_multiplier, args.split_on_colour,
@@ -158,6 +165,29 @@ def _ensure_consistent_width(target_width, images, temp_directory):
     pass
 
 
+def _predict_appropriate_breakpoint_mode(images, min_height_per_page, split_on_colour, colour_error_tolerance,
+                                         colour_standard_deviation):
+    logger.info("Predicting appropriate breakpoint mode...")
+    heights_between_file_end_breakpoints = [0]
+    for image in images:
+        heights_between_file_end_breakpoints[-1] += image.height
+        if imgmag.image_bottom_row_is_colour(image, split_on_colour, colour_error_tolerance, colour_standard_deviation):
+            heights_between_file_end_breakpoints += [0]
+            image.info["ends in breakpoint"] = True
+        else:
+            image.info["ends in breakpoint"] = False
+
+    avg_height_per_page = sum(heights_between_file_end_breakpoints) / len(heights_between_file_end_breakpoints)
+    logger.verbose("total list: " + str(heights_between_file_end_breakpoints))
+    logger.verbose("avg height per page: " + str(avg_height_per_page))
+    if avg_height_per_page < min_height_per_page:
+        logger.info("Breakpoint mode: End of File")
+        return 0
+    else:
+        logger.info("Breakpoint mode: Dynamic Search")
+        return 1
+
+
 def _recalculate_height_relative_to_images(min_height_per_page, images):
     if arguments.matches(min_height_per_page, arguments.pattern_pixels):
         return int(re.sub(r"\D", "", min_height_per_page))
@@ -252,8 +282,13 @@ def _define_page(page, images, min_height_per_page, breakpoint_detection_mode, s
                 page.crop_from_bottom = image.height - breakpoint_row
                 return
         else:
-            if imgmag.image_bottom_row_is_colour(image, split_on_colour, colour_error_tolerance,
-                                                 colour_standard_deviation):
+            if "ends in breakpoint" in image.info:
+                ends_in_breakpoint = image.info["ends in breakpoint"]
+                logger.verbose("'File ends breakpoint' already known: " + str(ends_in_breakpoint))
+                if ends_in_breakpoint:
+                    return
+            elif imgmag.image_bottom_row_is_colour(image, split_on_colour, colour_error_tolerance,
+                                                   colour_standard_deviation):
                 return
     pass
 

@@ -34,7 +34,7 @@ def parse(input=None):
                              "The path to the directory you want to collect image files from.")
     parser.add_argument("-od", "--output-directory", default="./Compiled/", type=str,
                         help="The path to the directory you want to put the new page files in.")
-    parser.add_argument("-b", "--breakpoint-detection-mode", default=0, type=int,
+    parser.add_argument("-b", "--breakpoint-detection-mode", default=-1, type=int,
                         help="The 'mode' that the script uses to detect where to split up pages. Mode 0 will split pages "
                              "when an input image ends in a breakpoint colour. Mode 1 will scan through out the input "
                              "images to find a breakpoint.")

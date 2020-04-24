@@ -325,7 +325,7 @@ class BreakpointConfigFrame(tk.LabelFrame):
         self.grid_columnconfigure(1, weight=1)
 
         tk.Label(self, text="Breakpoint Mode:").grid(row=0, column=0, pady=3, padx=3)
-        self.breakpoint_options = ["End of File", "Dynamic Search"]
+        self.breakpoint_options = ["Let Comicom Decide", "End of File", "Dynamic Search"]
         self.breakpoint_choice = tk.StringVar(self.master)
         self.breakpoint_choice.set(self.breakpoint_options[0])
         self.breakpoint_detection_mode = tk.OptionMenu(self, self.breakpoint_choice, *self.breakpoint_options)
@@ -370,7 +370,7 @@ class BreakpointConfigFrame(tk.LabelFrame):
         self.colour_standard_deviation.insert(0, self.colour_options_map[self.colour_choice.get()][2])
 
     def populate_args(self, args):
-        self.breakpoint_choice.set(self.breakpoint_options[args.breakpoint_detection_mode])
+        self.breakpoint_choice.set(self.breakpoint_options[args.breakpoint_detection_mode + 1])
         self.split_on_colour.delete(0, tk.END)
         self.split_on_colour.insert(0, " ".join(map(lambda c: str(c), args.split_on_colour)))
         self.colour_error_tolerance.delete(0, tk.END)
@@ -379,7 +379,7 @@ class BreakpointConfigFrame(tk.LabelFrame):
         self.colour_standard_deviation.insert(0, args.colour_standard_deviation)
 
     def get_args(self):
-        return format_as_argument("-b", self.breakpoint_options.index(self.breakpoint_choice.get())) + \
+        return format_as_argument("-b", self.breakpoint_options.index(self.breakpoint_choice.get()) - 1) + \
             format_as_argument("-c", self.split_on_colour.get()) + \
             format_as_argument("-ce", self.colour_error_tolerance.get()) + \
             format_as_argument("-csd", self.colour_standard_deviation.get())
