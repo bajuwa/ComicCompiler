@@ -1,12 +1,14 @@
 import argparse
 import shlex
+import re
 
 
 def parse(input=None):
-    parser = argparse.ArgumentParser(description="Given a set of images, vertically combines them in to 'pages' where the "
-                                                 "start/end of the page are solid white (or some other specified colour).")
+    parser = argparse.ArgumentParser(description="Given a set of images, vertically combines them in to 'pages' where "
+                                                 "the start/end of the page are solid white (or some other specified "
+                                                 "colour).")
 
-    parser.add_argument("-m", "--min-height-per-page", default=5000, type=int,
+    parser.add_argument("-m", "--min-height-per-page", default="5000px", type=min_page_formats,
                         help="The minimum allowed pixel height for each output page")
     # parser.add_argument("-M", "--max-height-per-page", default=15000, type=int,
     #                     help="The maximum allowed pixel height for each output page")
@@ -104,3 +106,30 @@ def parse(input=None):
 
 def get_defaults():
     return parse([])
+
+
+pattern_pixels = "^[0-9]+(px)*$"
+pattern_ratio = "^[0-9]+:[0-9]+$"
+pattern_fraction = "^[0-9]+\\/[0-9]+$"
+pattern_percent = "^[0-9]{1,3}%$"
+
+
+def min_page_formats(arg_value):
+    return validate_patterns(arg_value, [pattern_pixels, pattern_ratio, pattern_fraction, pattern_percent])
+
+
+def matches(arg_value, pattern):
+    return matches_any(arg_value, [pattern])
+
+
+def matches_any(arg_value, patterns):
+    pat = re.compile("|".join(patterns))
+    if not pat.match(arg_value):
+        return False
+    return True
+
+
+def validate_patterns(arg_value, patterns):
+    if matches_any(arg_value, patterns):
+        return arg_value
+    raise argparse.ArgumentTypeError

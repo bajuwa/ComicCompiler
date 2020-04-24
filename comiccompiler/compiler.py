@@ -4,10 +4,12 @@ import time
 import shutil
 import glob
 import natsort
+import re
 
 from PIL import Image
 
 from . import imgmag
+from . import arguments
 from . import entities
 from . import logger
 
@@ -44,12 +46,15 @@ def run(args):
         return
 
     _ensure_directory(args.output_directory, args.clean)
+
+    min_pixel_height_per_page = _recalculate_min_height(str(args.min_height_per_page), images)
+
     pages = _combine_images(images, args.output_directory, args.output_file_prefix, args.output_file_starting_number,
-                    args.extension, args.min_height_per_page, args.output_file_width, args.breakpoint_detection_mode,
+                    args.extension, min_pixel_height_per_page, args.output_file_width, args.breakpoint_detection_mode,
                     args.break_points_increment, args.break_points_multiplier, args.split_on_colour,
                     args.colour_error_tolerance, args.colour_standard_deviation)
 
-    _post_process_pages(pages, args.min_height_per_page)
+    _post_process_pages(pages, min_pixel_height_per_page)
 
     _cleanup(images, temp_directory)
 
@@ -129,7 +134,7 @@ def _copy_to_temp(path, temp_directory):
 
 def _ensure_consistent_width(target_width, images, temp_directory):
     if target_width == 0:
-        logger.debug("No given width, extracting first images width: %s " % images[0])
+        logger.debug("No given width, extracting first images width: %s " % images[0].info["path"])
         target_width = images[0].width
 
     logger.info("Checking input images are target width: " + str(target_width))
@@ -149,6 +154,28 @@ def _ensure_consistent_width(target_width, images, temp_directory):
             logger.debug("Resized file: " + images[i].info["path"])
 
     pass
+
+
+def _recalculate_min_height(min_height_per_page, images):
+    if arguments.matches(min_height_per_page, arguments.pattern_pixels):
+        return int(re.sub(r"\D", "", min_height_per_page))
+
+    if arguments.matches(min_height_per_page, arguments.pattern_ratio):
+        (width, height) = min_height_per_page.split(":")
+        multiplier_of_width = int(height) / int(width)
+        return images[0].width * multiplier_of_width
+
+    total_image_height = sum(list(map(lambda image: image.height, images)))
+    percent_of_total_height = 1.0
+
+    if arguments.matches(min_height_per_page, arguments.pattern_percent):
+        percent_of_total_height = float(min_height_per_page.strip('%')) / 100.0
+
+    if arguments.matches(min_height_per_page, arguments.pattern_fraction):
+        (width, height) = min_height_per_page.split("/")
+        percent_of_total_height = int(width) / int(height)
+
+    return int(total_image_height * percent_of_total_height)
 
 
 def check_stitch_connections_match(prev_image, next_image):
