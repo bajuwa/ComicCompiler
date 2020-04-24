@@ -47,7 +47,8 @@ def run(args):
 
     _ensure_directory(args.output_directory, args.clean)
 
-    min_pixel_height_per_page = _recalculate_min_height(str(args.min_height_per_page), images)
+    min_pixel_height_per_page = _recalculate_height_relative_to_images(str(args.min_height_per_page), images)
+    min_pixel_height_last_page = _recalculate_height_relative_to_images(str(args.min_height_last_page), images)
 
     pages = _combine_images(images, args.output_directory, args.output_file_prefix, args.output_file_starting_number,
                     args.extension, min_pixel_height_per_page, args.output_file_width, args.breakpoint_detection_mode,
@@ -55,6 +56,7 @@ def run(args):
                     args.colour_error_tolerance, args.colour_standard_deviation)
 
     _post_process_pages(pages, min_pixel_height_per_page)
+    _handle_potential_orphan_page(pages, args.output_directory, min_pixel_height_last_page)
 
     _cleanup(images, temp_directory)
 
@@ -156,7 +158,7 @@ def _ensure_consistent_width(target_width, images, temp_directory):
     pass
 
 
-def _recalculate_min_height(min_height_per_page, images):
+def _recalculate_height_relative_to_images(min_height_per_page, images):
     if arguments.matches(min_height_per_page, arguments.pattern_pixels):
         return int(re.sub(r"\D", "", min_height_per_page))
 
@@ -330,3 +332,11 @@ def _post_process_pages(pages, expected_min_height):
         logger.warn("Seems like you've got some pages that are much longer than your configured minimum "
                     "height.  Check out our wiki's FAQ for ways to fix this\n"
                     "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-FAQ#troubleshooting-compiled-pages")
+
+
+def _handle_potential_orphan_page(pages, output_directory, expected_min_height_last_page):
+    if len(pages) > 1 and pages[-1].calculate_cropped_height() < expected_min_height_last_page:
+        logger.info("Last page was too short, combining in to the previous page.")
+        image_paths = list(map(lambda page: output_directory + page.name, pages[-2:]))
+        imgmag.combine_vertically(image_paths, image_paths[-2])
+        os.remove(image_paths[-1])

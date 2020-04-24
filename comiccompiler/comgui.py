@@ -280,6 +280,12 @@ class PageConfigFrame(tk.LabelFrame):
         self.min_height_per_page.grid(row=3, column=1, columnspan=3, sticky='we', pady=3, padx=3)
         WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#minimum-height-per-page") \
             .grid(column=5, row=3, pady=3, padx=3)
+
+        tk.Label(self, text="Min Height Last Page:").grid(row=4, column=0, pady=3, padx=3)
+        self.min_height_last_page = tk.Entry(self)
+        self.min_height_last_page.grid(row=4, column=1, columnspan=3, sticky='we', pady=3, padx=3)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#minimum-height-last-page")\
+            .grid(column=5, row=4, pady=3, padx=3)
         pass
 
     def populate_args(self, args):
@@ -293,6 +299,8 @@ class PageConfigFrame(tk.LabelFrame):
         self.output_file_width.insert(0, args.output_file_width)
         self.min_height_per_page.delete(0, tk.END)
         self.min_height_per_page.insert(0, args.min_height_per_page)
+        self.min_height_last_page.delete(0, tk.END)
+        self.min_height_last_page.insert(0, args.min_height_last_page)
 
     def get_args(self):
         return \
@@ -300,7 +308,8 @@ class PageConfigFrame(tk.LabelFrame):
             format_as_argument("-e", self.extension.get()) + \
             format_as_argument("-osn", self.output_file_starting_number.get()) + \
             format_as_argument("-ow", self.output_file_width.get()) + \
-            format_as_argument("-m", self.min_height_per_page.get())
+            format_as_argument("-m", self.min_height_per_page.get()) + \
+            format_as_argument("-M", self.min_height_last_page.get())
 
 
 class BreakpointConfigFrame(tk.LabelFrame):

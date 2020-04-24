@@ -8,10 +8,11 @@ def parse(input=None):
                                                  "the start/end of the page are solid white (or some other specified "
                                                  "colour).")
 
-    parser.add_argument("-m", "--min-height-per-page", default="5000px", type=min_page_formats,
+    parser.add_argument("-m", "--min-height-per-page", default="5000px", type=page_height_formats,
                         help="The minimum allowed pixel height for each output page")
-    # parser.add_argument("-M", "--max-height-per-page", default=15000, type=int,
-    #                     help="The maximum allowed pixel height for each output page")
+    parser.add_argument("-M", "--min-height-last-page", default="0px", type=page_height_formats,
+                        help="The minimum allowed pixel height for the last output page. If the last page is less "
+                             "than this height, it will be combined in to the previous page.")
     parser.add_argument("-i", "--input-file-prefix", default="image", type=str,
                         help="[DEPRECATED] Use the -f parameter instead; "
                              "Will only combine images that start with this text")
@@ -114,7 +115,7 @@ pattern_fraction = "^[0-9]+\\/[0-9]+$"
 pattern_percent = "^[0-9]{1,3}%$"
 
 
-def min_page_formats(arg_value):
+def page_height_formats(arg_value):
     return validate_patterns(arg_value, [pattern_pixels, pattern_ratio, pattern_fraction, pattern_percent])
 
 
