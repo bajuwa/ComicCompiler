@@ -40,6 +40,9 @@ def verbose(message):
 
 
 def inline(message):
+    if logging_level < 1:
+        return
+
     if _supports_inline_logging():
         sys.stdout.write(delete_line_string)
 

@@ -408,7 +408,7 @@ class RunFrame(tk.LabelFrame):
         self.open = tk.Checkbutton(self, text="Open", variable=self.is_open)
         self.open.grid(column=1, row=2, sticky='we', pady=3, padx=3)
 
-        self.logging_options = ["Info", "Debug", "Verbose"]
+        self.logging_options = ["Error", "Info", "Warn", "Debug", "Verbose"]
         self.logging_choice = tk.StringVar(self.master)
         self.logging_choice.set(self.logging_options[0])
         self.logging_level = tk.OptionMenu(self, self.logging_choice, *self.logging_options)
