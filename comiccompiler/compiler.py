@@ -41,42 +41,44 @@ def run(args):
         return
 
     temp_directory = tempfile.mkdtemp(prefix="comicom")
-    if not _pre_process_images(images, temp_directory, args.enable_stitch_check, args.output_file_width):
+
+    try:
+        if not _pre_process_images(images, temp_directory, args.enable_stitch_check, args.output_file_width):
+            _cleanup(images, temp_directory)
+            return
+
+        _ensure_directory(args.output_directory, args.clean)
+
+        min_pixel_height_per_page = _recalculate_height_relative_to_images(str(args.min_height_per_page), images)
+        min_pixel_height_last_page = _recalculate_height_relative_to_images(str(args.min_height_last_page), images)
+
+        if args.breakpoint_detection_mode < 0:
+            args.breakpoint_detection_mode = _predict_appropriate_breakpoint_mode(images,
+                                                                                  min_pixel_height_per_page,
+                                                                                  args.split_on_colour,
+                                                                                  args.colour_error_tolerance,
+                                                                                  args.colour_standard_deviation)
+
+        pages = _combine_images(images, args.output_directory, args.output_file_prefix, args.output_file_starting_number,
+                        args.extension, min_pixel_height_per_page, args.output_file_width, args.breakpoint_detection_mode,
+                        args.break_points_increment, args.break_points_multiplier, args.split_on_colour,
+                        args.colour_error_tolerance, args.colour_standard_deviation)
+
+        _post_process_pages(pages, min_pixel_height_per_page)
+        _handle_potential_orphan_page(pages, args.output_directory, min_pixel_height_last_page)
+
+        if args.open:
+            if args.output_directory.startswith("./"):
+                os.startfile(os.path.dirname(os.path.realpath('__file__')) + args.output_directory[1:])
+            else:
+                os.startfile(args.output_directory)
+    finally:
         _cleanup(images, temp_directory)
-        return
-
-    _ensure_directory(args.output_directory, args.clean)
-
-    min_pixel_height_per_page = _recalculate_height_relative_to_images(str(args.min_height_per_page), images)
-    min_pixel_height_last_page = _recalculate_height_relative_to_images(str(args.min_height_last_page), images)
-
-    if args.breakpoint_detection_mode < 0:
-        args.breakpoint_detection_mode = _predict_appropriate_breakpoint_mode(images,
-                                                                              min_pixel_height_per_page,
-                                                                              args.split_on_colour,
-                                                                              args.colour_error_tolerance,
-                                                                              args.colour_standard_deviation)
-
-    pages = _combine_images(images, args.output_directory, args.output_file_prefix, args.output_file_starting_number,
-                    args.extension, min_pixel_height_per_page, args.output_file_width, args.breakpoint_detection_mode,
-                    args.break_points_increment, args.break_points_multiplier, args.split_on_colour,
-                    args.colour_error_tolerance, args.colour_standard_deviation)
-
-    _post_process_pages(pages, min_pixel_height_per_page)
-    _handle_potential_orphan_page(pages, args.output_directory, min_pixel_height_last_page)
-
-    _cleanup(images, temp_directory)
 
     end = time.time()
     total_time = end - start
     logger.info("")
     logger.info("Comic Compilation - Complete! (time: %ds)" % total_time)
-
-    if args.open:
-        if args.output_directory.startswith("./"):
-            os.startfile(os.path.dirname(os.path.realpath('__file__')) + args.output_directory[1:])
-        else:
-            os.startfile(args.output_directory)
 
     if args.exit:
         input("Press enter to exit")
