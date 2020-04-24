@@ -294,9 +294,12 @@ def _combine_images(images, output_directory, output_file_prefix, output_file_st
 
 
 def _post_process_pages(pages, expected_min_height):
+    trigger_warning = False
     max_height_to_warn = expected_min_height * 1.8
     for page in pages:
         if page.calculate_cropped_height() >= max_height_to_warn:
-            logger.warn("Seems like you've got some pages that are much longer than your configured minimum "
-                        "height.  Check out our wiki's FAQ for ways to fix this\n"
-                        "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-FAQ#troubleshooting-compiled-pages")
+            trigger_warning = True
+    if trigger_warning:
+        logger.warn("Seems like you've got some pages that are much longer than your configured minimum "
+                    "height.  Check out our wiki's FAQ for ways to fix this\n"
+                    "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-FAQ#troubleshooting-compiled-pages")
