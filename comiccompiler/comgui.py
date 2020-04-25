@@ -21,6 +21,12 @@ command_line_documentation = "https://github.com/bajuwa/ComicCompiler/wiki/ComCo
 thread_pool_executor = futures.ThreadPoolExecutor(max_workers=1)
 
 
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+
 def input_list(entry, items):
     entry.delete(0, tk.END)
     if items is not None:
@@ -39,6 +45,7 @@ class MainWindow(tk.Frame):
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
         self.master = master
+        self.master.iconbitmap(default=resource_path('resources/pow_icon.ico'))
         self.master.title("Comic Compiler (by bajuwa)")
         self.master.resizable(False, False)
         self.grid_columnconfigure(1, weight=1)
@@ -105,7 +112,7 @@ class MainWindow(tk.Frame):
     def _run(self):
         try:
             if self.input_frame.input_files.get() == "":
-                logger.info("Error: Must select input files or directory")
+                logger.error("Must select input files or directory")
                 return
 
             self._run_and_log(self.get_args())
@@ -132,7 +139,7 @@ class InfoAndProfilesFrame(tk.Frame):
         wiki_link = tk.Label(self, text="Check out the wiki", fg="blue", cursor="hand2", anchor="w")
         wiki_link.grid(row=0, column=1, sticky="we", pady=3, padx=3)
         wiki_link.bind("<Button-1>", lambda e: webbrowser.open_new(
-            "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)"))
+            "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Demo"))
 
         tk.Label(self, text="Profile:").grid(row=0, column=2, pady=3, padx=3)
 
@@ -192,7 +199,7 @@ class InputFrame(tk.LabelFrame):
         button.grid(column=1, row=0, pady=3, padx=3)
         button = tk.Button(self, text="Import Files", command=lambda: self.select_files())
         button.grid(column=2, row=0, pady=3, padx=3)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#input-files")\
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#input-files")\
             .grid(column=3, row=0, pady=3, padx=3)
         pass
 
@@ -226,7 +233,7 @@ class OutputFrame(tk.LabelFrame):
         button = tk.Button(self, text="Browse", command=lambda: self.select_directory())
         button.grid(column=1, row=0, sticky='we', pady=3, padx=3)
         button.bind('<Return>', lambda e: self.select_directory())
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#output-directory") \
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#output-directory") \
             .grid(column=3, row=0, pady=3, padx=3)
 
     def populate_args(self, args):
@@ -260,26 +267,32 @@ class PageConfigFrame(tk.LabelFrame):
         tk.Label(self, text="###", width=2).grid(row=0, column=2, pady=3, padx=3)
         self.extension = tk.Entry(self, width=5, justify='left')
         self.extension.grid(row=0, column=3, sticky='we', pady=3, padx=3)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#output-page-file-prefix") \
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#output-page-file-prefix") \
             .grid(column=5, row=0, pady=3, padx=3)
 
         tk.Label(self, text="Starting Number:").grid(row=1, column=0, pady=3, padx=3)
         self.output_file_starting_number = tk.Entry(self)
         self.output_file_starting_number.grid(row=1, column=1, columnspan=3, sticky='we', pady=3, padx=3)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#output-page-starting-number") \
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#output-page-starting-number") \
             .grid(column=5, row=1, pady=3, padx=3)
 
         tk.Label(self, text="Page Width:").grid(row=2, column=0, pady=3, padx=3)
         self.output_file_width = tk.Entry(self)
         self.output_file_width.grid(row=2, column=1, columnspan=3, sticky='we', pady=3, padx=3)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#output-page-width") \
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#output-page-width") \
             .grid(column=5, row=2, pady=3, padx=3)
 
         tk.Label(self, text="Minimum Height:").grid(row=3, column=0, pady=3, padx=3)
         self.min_height_per_page = tk.Entry(self)
         self.min_height_per_page.grid(row=3, column=1, columnspan=3, sticky='we', pady=3, padx=3)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#minimum-height-per-page") \
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#minimum-height-per-page") \
             .grid(column=5, row=3, pady=3, padx=3)
+
+        tk.Label(self, text="Min Height Last Page:").grid(row=4, column=0, pady=3, padx=3)
+        self.min_height_last_page = tk.Entry(self)
+        self.min_height_last_page.grid(row=4, column=1, columnspan=3, sticky='we', pady=3, padx=3)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#minimum-height-last-page")\
+            .grid(column=5, row=4, pady=3, padx=3)
         pass
 
     def populate_args(self, args):
@@ -293,6 +306,8 @@ class PageConfigFrame(tk.LabelFrame):
         self.output_file_width.insert(0, args.output_file_width)
         self.min_height_per_page.delete(0, tk.END)
         self.min_height_per_page.insert(0, args.min_height_per_page)
+        self.min_height_last_page.delete(0, tk.END)
+        self.min_height_last_page.insert(0, args.min_height_last_page)
 
     def get_args(self):
         return \
@@ -300,7 +315,8 @@ class PageConfigFrame(tk.LabelFrame):
             format_as_argument("-e", self.extension.get()) + \
             format_as_argument("-osn", self.output_file_starting_number.get()) + \
             format_as_argument("-ow", self.output_file_width.get()) + \
-            format_as_argument("-m", self.min_height_per_page.get())
+            format_as_argument("-m", self.min_height_per_page.get()) + \
+            format_as_argument("-M", self.min_height_last_page.get())
 
 
 class BreakpointConfigFrame(tk.LabelFrame):
@@ -316,40 +332,46 @@ class BreakpointConfigFrame(tk.LabelFrame):
         self.grid_columnconfigure(1, weight=1)
 
         tk.Label(self, text="Breakpoint Mode:").grid(row=0, column=0, pady=3, padx=3)
-        self.breakpoint_options = ["End of File", "Dynamic Search"]
+        self.breakpoint_options = ["Let Comicom Decide", "End of File", "Dynamic Search"]
         self.breakpoint_choice = tk.StringVar(self.master)
         self.breakpoint_choice.set(self.breakpoint_options[0])
         self.breakpoint_detection_mode = tk.OptionMenu(self, self.breakpoint_choice, *self.breakpoint_options)
         self.breakpoint_detection_mode.grid(row=0, column=1, sticky='we', pady=3, padx=3)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#breakpoint-detection-mode") \
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#breakpoint-detection-mode") \
             .grid(column=3, row=0, pady=3, padx=3)
 
-        tk.Label(self, text="Colour Presets:").grid(row=1, column=0, pady=3, padx=3)
+        tk.Label(self, text="Breakpoint Buffer:").grid(row=1, column=0, pady=3, padx=3)
+        self.breakpoint_buffer = tk.Entry(self)
+        self.breakpoint_buffer.grid(row=1, column=1, sticky='we', pady=3, padx=3)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#breakpoint-buffer") \
+            .grid(column=3, row=1, pady=3, padx=3)
+
+        tk.Label(self, text="Colour Presets:").grid(row=2, column=0, pady=3, padx=3)
         self.colour_options = [""]
         self.colour_options += self.colour_options_map.keys()
         self.colour_choice = tk.StringVar(self.master)
         self.colour_choice.set(self.colour_options[0])
         self.colour_choice.trace('w', self.load_colour_preset)
         self.colour_preset = tk.OptionMenu(self, self.colour_choice, *self.colour_options)
-        self.colour_preset.grid(row=1, column=1, sticky='we', pady=3, padx=3)
+        self.colour_preset.grid(row=2, column=1, sticky='we', pady=3, padx=3)
 
-        tk.Label(self, text="Split on Colours:").grid(row=2, column=0, pady=3, padx=3)
+        tk.Label(self, text="Split on Colours:").grid(row=3, column=0, pady=3, padx=3)
         self.split_on_colour = tk.Entry(self)
-        self.split_on_colour.grid(row=2, column=1, sticky='we', pady=3, padx=3)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#split-pages-on-colours") \
-            .grid(column=3, row=2, pady=3, padx=3)
-
-        tk.Label(self, text="Error Tolerance:").grid(row=3, column=0, pady=3, padx=3)
-        self.colour_error_tolerance = tk.Entry(self)
-        self.colour_error_tolerance.grid(row=3, column=1, sticky='we', pady=3, padx=3)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#colour-split-error-tolerance") \
+        self.split_on_colour.grid(row=3, column=1, sticky='we', pady=3, padx=3)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#split-pages-on-colours") \
             .grid(column=3, row=3, pady=3, padx=3)
 
-        tk.Label(self, text="Standard Deviation:").grid(row=4, column=0, pady=3, padx=3)
-        self.colour_standard_deviation = tk.Entry(self)
-        self.colour_standard_deviation.grid(row=4, column=1, sticky='we', pady=3, padx=3)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(Python-Version)#colour-split-standard-deviation") \
+        tk.Label(self, text="Error Tolerance:").grid(row=4, column=0, pady=3, padx=3)
+        self.colour_error_tolerance = tk.Entry(self)
+        self.colour_error_tolerance.grid(row=4, column=1, sticky='we', pady=3, padx=3)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#colour-split-error-tolerance") \
             .grid(column=3, row=4, pady=3, padx=3)
+
+        tk.Label(self, text="Standard Deviation:").grid(row=5, column=0, pady=3, padx=3)
+        self.colour_standard_deviation = tk.Entry(self)
+        self.colour_standard_deviation.grid(row=5, column=1, sticky='we', pady=3, padx=3)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#colour-split-standard-deviation") \
+            .grid(column=3, row=5, pady=3, padx=3)
         pass
 
     def load_colour_preset(self, *args):
@@ -361,7 +383,9 @@ class BreakpointConfigFrame(tk.LabelFrame):
         self.colour_standard_deviation.insert(0, self.colour_options_map[self.colour_choice.get()][2])
 
     def populate_args(self, args):
-        self.breakpoint_choice.set(self.breakpoint_options[args.breakpoint_detection_mode])
+        self.breakpoint_choice.set(self.breakpoint_options[args.breakpoint_detection_mode + 1])
+        self.breakpoint_buffer.delete(0, tk.END)
+        self.breakpoint_buffer.insert(0, args.breakpoint_buffer)
         self.split_on_colour.delete(0, tk.END)
         self.split_on_colour.insert(0, " ".join(map(lambda c: str(c), args.split_on_colour)))
         self.colour_error_tolerance.delete(0, tk.END)
@@ -370,7 +394,8 @@ class BreakpointConfigFrame(tk.LabelFrame):
         self.colour_standard_deviation.insert(0, args.colour_standard_deviation)
 
     def get_args(self):
-        return format_as_argument("-b", self.breakpoint_options.index(self.breakpoint_choice.get())) + \
+        return format_as_argument("-b", self.breakpoint_options.index(self.breakpoint_choice.get()) - 1) + \
+            format_as_argument("-bb", self.breakpoint_buffer.get()) + \
             format_as_argument("-c", self.split_on_colour.get()) + \
             format_as_argument("-ce", self.colour_error_tolerance.get()) + \
             format_as_argument("-csd", self.colour_standard_deviation.get())
@@ -399,7 +424,7 @@ class RunFrame(tk.LabelFrame):
         self.open = tk.Checkbutton(self, text="Open", variable=self.is_open)
         self.open.grid(column=1, row=2, sticky='we', pady=3, padx=3)
 
-        self.logging_options = ["Info", "Debug", "Verbose"]
+        self.logging_options = ["Error", "Info", "Warn", "Debug", "Verbose"]
         self.logging_choice = tk.StringVar(self.master)
         self.logging_choice.set(self.logging_options[0])
         self.logging_level = tk.OptionMenu(self, self.logging_choice, *self.logging_options)
