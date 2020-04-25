@@ -9,7 +9,7 @@ from comiccompiler import imgmag
 # Imports not working? Make sure it's installed by pip, and to install the current dev version:
 # pip install --editable <path/to/ComicCompiler/>
 # Run tests from base project folder via: python -m unittest
-# Cleanup test output folders via: python tests/cleanup.py
+# Cleanup test output folders (and build output) via: python clean.py
 class ComicomTestCase(unittest.TestCase):
     def setup_test_vars(self, test_folder, expected_output_folder, actual_output_folder="Compiled"):
         self.expected_output_folder = expected_output_folder

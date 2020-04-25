@@ -21,6 +21,12 @@ command_line_documentation = "https://github.com/bajuwa/ComicCompiler/wiki/ComCo
 thread_pool_executor = futures.ThreadPoolExecutor(max_workers=1)
 
 
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+
 def input_list(entry, items):
     entry.delete(0, tk.END)
     if items is not None:
@@ -39,6 +45,7 @@ class MainWindow(tk.Frame):
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
         self.master = master
+        self.master.iconbitmap(default=resource_path('resources/pow_icon.ico'))
         self.master.title("Comic Compiler (by bajuwa)")
         self.master.resizable(False, False)
         self.grid_columnconfigure(1, weight=1)
