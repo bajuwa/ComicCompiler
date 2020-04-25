@@ -143,12 +143,35 @@ def image_bottom_row_is_colour(image, split_on_colour, colour_error_tolerance, c
     return sample_is_colour(file_sample, split_on_colour, colour_error_tolerance, colour_standard_deviation)
 
 
-def find_solid_row_of_colour(image, offset, batch_size, row_check_increment,
-                             split_on_colour, colour_error_tolerance, colour_standard_deviation):
+def _is_row_colour(image, index, split_on_colour, colour_error_tolerance, colour_standard_deviation):
+    file_sampling = get_file_sample_string(image.info["path"], width=image.width, y_offset=index)
+    gray_mean_value = get_image_gray_mean(file_sampling)
+    for colour in split_on_colour:
+        logger.verbose("Checking row {i} for breakpoint colour {colour}".format(i=index, colour=colour))
+        colour_difference = gray_mean_value - colour
+
+        if abs(colour_difference) <= colour_error_tolerance:
+            standard_deviation = get_image_standard_deviation(file_sampling)
+            if standard_deviation <= colour_standard_deviation:
+                logger.debug("Found a breakpoint colour {colour} in {image_name} at row {row}"
+                             .format(colour=colour, image_name=image.info["path"], row=index))
+                return True
+            else:
+                logger.verbose("Colour value {gray_mean} was within tolerance {colour} "
+                               "+-{colour_error} but standard-deviation was {standard_deviation}"
+                               .format(gray_mean=gray_mean_value, colour=colour,
+                                       colour_error=colour_error_tolerance, standard_deviation=standard_deviation
+                                       ))
+    return False
+
+
+def find_consecutive_rows_of_colour(image, offset, batch_size, row_check_increment, max_range,
+                                    split_on_colour, colour_error_tolerance, colour_standard_deviation):
     logger.debug("Scanning file " + image.info["path"] + " for breakpoint with offset " + str(offset))
+    breakpoint_rows = [-1, -1]
 
     batch_end = offset
-    while batch_end < image.height - 1:
+    while batch_end < image.height - 1 and breakpoint_rows[1] < 0:
         logger.inline_progress()
         batch_start = batch_end
         batch_end = min(batch_start + batch_size, image.height - 1)
@@ -156,37 +179,38 @@ def find_solid_row_of_colour(image, offset, batch_size, row_check_increment,
         logger.verbose("Checking batch for possible breakpoint colours {colours}: {start}-{end}"
                        .format(colours=split_on_colour, start=batch_start, end=batch_end))
 
-        if not sample_contains_colour(batch_file_sample, split_on_colour, colour_error_tolerance):
-            logger.debug("Colours not found in sample batch {start}-{end}, skipping to next batch"
-                         .format(start=batch_start, end=batch_end))
-            continue
-        else:
-            logger.verbose("Colours found in sample batch {start}-{end}, checking rows for breakpoint"
-                           .format(start=batch_start, end=batch_end))
+        if breakpoint_rows[0] < 0:
+            if not sample_contains_colour(batch_file_sample, split_on_colour, colour_error_tolerance):
+                logger.debug("Colours not found in sample batch {start}-{end}, skipping to next batch"
+                             .format(start=batch_start, end=batch_end))
+                continue
+            else:
+                logger.verbose("Colours found in sample batch {start}-{end}, checking rows for breakpoint"
+                               .format(start=batch_start, end=batch_end))
 
         for index in range(batch_start, batch_end, row_check_increment):
-            file_sampling = get_file_sample_string(image.info["path"], width=image.width, y_offset=index)
-            gray_mean_value = get_image_gray_mean(file_sampling)
-            for colour in split_on_colour:
-                logger.verbose("Checking row {i} for breakpoint colour {colour}".format(i=index, colour=colour))
-                colour_difference = gray_mean_value - colour
+            if breakpoint_rows[0] >= 0 and index - breakpoint_rows[0] > max_range:
+                breakpoint_rows[1] = breakpoint_rows[0] + max_range
+                logger.debug("Reached max range allowed for breakpoint range: " + str(breakpoint_rows[1]))
+                return breakpoint_rows
 
-                if abs(colour_difference) <= colour_error_tolerance:
-                    standard_deviation = get_image_standard_deviation(file_sampling)
-                    if standard_deviation <= colour_standard_deviation:
-                        logger.debug("Found a breakpoint colour {colour} in {image_name} at row {row}"
-                                     .format(colour=colour, image_name=image.info["path"], row=index))
-                        return index
-                    else:
-                        logger.verbose("Colour value {gray_mean} was within tolerance {colour} "
-                                       "+-{colour_error} but standard-deviation was {standard_deviation}"
-                                       .format(gray_mean=gray_mean_value, colour=colour,
-                                               colour_error=colour_error_tolerance, standard_deviation=standard_deviation
-                                               ))
+            if _is_row_colour(image, index, split_on_colour, colour_error_tolerance, colour_standard_deviation):
+                if breakpoint_rows[0] < 0:
+                    breakpoint_rows[0] = index
+                    logger.debug("Found first positive breakpoint location: " + str(breakpoint_rows[0]))
+            else:
+                if breakpoint_rows[0] >= 0:
+                    breakpoint_rows[1] = index - row_check_increment
+                    logger.debug("Found last positive breakpoint location: " + str(breakpoint_rows[1]))
+                    return breakpoint_rows
 
-    # If we couldn't find a breakpoint, then return 0's
-    logger.verbose("Could not find a breakpoint in: " + image.info["path"])
-    return -1
+    if breakpoint_rows[0] >= 0:
+        logger.verbose("Found breakpoints all the way to end of file")
+        breakpoint_rows[1] = image.height - 1
+    else:
+        logger.verbose("Could not find a breakpoint in: " + image.info["path"])
+
+    return breakpoint_rows
 
 
 def get_file_sample_string(path, width=1, height=1, x_offset=0, y_offset=0):

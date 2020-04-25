@@ -333,32 +333,38 @@ class BreakpointConfigFrame(tk.LabelFrame):
         WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#breakpoint-detection-mode") \
             .grid(column=3, row=0, pady=3, padx=3)
 
-        tk.Label(self, text="Colour Presets:").grid(row=1, column=0, pady=3, padx=3)
+        tk.Label(self, text="Breakpoint Buffer:").grid(row=1, column=0, pady=3, padx=3)
+        self.breakpoint_buffer = tk.Entry(self)
+        self.breakpoint_buffer.grid(row=1, column=1, sticky='we', pady=3, padx=3)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#breakpoint-buffer") \
+            .grid(column=3, row=1, pady=3, padx=3)
+
+        tk.Label(self, text="Colour Presets:").grid(row=2, column=0, pady=3, padx=3)
         self.colour_options = [""]
         self.colour_options += self.colour_options_map.keys()
         self.colour_choice = tk.StringVar(self.master)
         self.colour_choice.set(self.colour_options[0])
         self.colour_choice.trace('w', self.load_colour_preset)
         self.colour_preset = tk.OptionMenu(self, self.colour_choice, *self.colour_options)
-        self.colour_preset.grid(row=1, column=1, sticky='we', pady=3, padx=3)
+        self.colour_preset.grid(row=2, column=1, sticky='we', pady=3, padx=3)
 
-        tk.Label(self, text="Split on Colours:").grid(row=2, column=0, pady=3, padx=3)
+        tk.Label(self, text="Split on Colours:").grid(row=3, column=0, pady=3, padx=3)
         self.split_on_colour = tk.Entry(self)
-        self.split_on_colour.grid(row=2, column=1, sticky='we', pady=3, padx=3)
+        self.split_on_colour.grid(row=3, column=1, sticky='we', pady=3, padx=3)
         WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#split-pages-on-colours") \
-            .grid(column=3, row=2, pady=3, padx=3)
-
-        tk.Label(self, text="Error Tolerance:").grid(row=3, column=0, pady=3, padx=3)
-        self.colour_error_tolerance = tk.Entry(self)
-        self.colour_error_tolerance.grid(row=3, column=1, sticky='we', pady=3, padx=3)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#colour-split-error-tolerance") \
             .grid(column=3, row=3, pady=3, padx=3)
 
-        tk.Label(self, text="Standard Deviation:").grid(row=4, column=0, pady=3, padx=3)
-        self.colour_standard_deviation = tk.Entry(self)
-        self.colour_standard_deviation.grid(row=4, column=1, sticky='we', pady=3, padx=3)
-        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#colour-split-standard-deviation") \
+        tk.Label(self, text="Error Tolerance:").grid(row=4, column=0, pady=3, padx=3)
+        self.colour_error_tolerance = tk.Entry(self)
+        self.colour_error_tolerance.grid(row=4, column=1, sticky='we', pady=3, padx=3)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#colour-split-error-tolerance") \
             .grid(column=3, row=4, pady=3, padx=3)
+
+        tk.Label(self, text="Standard Deviation:").grid(row=5, column=0, pady=3, padx=3)
+        self.colour_standard_deviation = tk.Entry(self)
+        self.colour_standard_deviation.grid(row=5, column=1, sticky='we', pady=3, padx=3)
+        WikiIcon(self, "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-Input-Arguments#colour-split-standard-deviation") \
+            .grid(column=3, row=5, pady=3, padx=3)
         pass
 
     def load_colour_preset(self, *args):
@@ -371,6 +377,8 @@ class BreakpointConfigFrame(tk.LabelFrame):
 
     def populate_args(self, args):
         self.breakpoint_choice.set(self.breakpoint_options[args.breakpoint_detection_mode + 1])
+        self.breakpoint_buffer.delete(0, tk.END)
+        self.breakpoint_buffer.insert(0, args.breakpoint_buffer)
         self.split_on_colour.delete(0, tk.END)
         self.split_on_colour.insert(0, " ".join(map(lambda c: str(c), args.split_on_colour)))
         self.colour_error_tolerance.delete(0, tk.END)
@@ -380,6 +388,7 @@ class BreakpointConfigFrame(tk.LabelFrame):
 
     def get_args(self):
         return format_as_argument("-b", self.breakpoint_options.index(self.breakpoint_choice.get()) - 1) + \
+            format_as_argument("-bb", self.breakpoint_buffer.get()) + \
             format_as_argument("-c", self.split_on_colour.get()) + \
             format_as_argument("-ce", self.colour_error_tolerance.get()) + \
             format_as_argument("-csd", self.colour_standard_deviation.get())

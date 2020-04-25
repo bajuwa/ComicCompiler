@@ -1,0 +1,4 @@
+v0.1 (shell) = 343 seconds
+v1.1.2 (python) = 434 seconds
+v1.2.0 (fix for close_fds) = 248 seconds
+v1.2.0 (+ switch to pillow) = 224 seconds

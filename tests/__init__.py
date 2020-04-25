@@ -22,6 +22,7 @@ class ComicomTestCase(unittest.TestCase):
         self.args.input_files = [self.base_path + "input/*.jpg"]
         self.args.output_directory = self.base_path + self.actual_output_folder + os.sep
         self.args.breakpoint_detection_mode = 0
+        self.args.breakpoint_buffer = "0px"
         self.args.clean = True
         # self.args.logging_level = 5
 

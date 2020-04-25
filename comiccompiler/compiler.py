@@ -59,10 +59,11 @@ def run(args):
                                                                                   args.colour_error_tolerance,
                                                                                   args.colour_standard_deviation)
 
-        pages = _combine_images(images, args.output_directory, args.output_file_prefix, args.output_file_starting_number,
-                        args.extension, min_pixel_height_per_page, args.output_file_width, args.breakpoint_detection_mode,
-                        args.break_points_increment, args.break_points_multiplier, args.split_on_colour,
-                        args.colour_error_tolerance, args.colour_standard_deviation)
+        pages = _combine_images(images, args.output_directory, args.output_file_prefix,
+                                args.output_file_starting_number, args.extension, min_pixel_height_per_page,
+                                args.output_file_width, args.breakpoint_detection_mode, args.breakpoint_buffer,
+                                args.break_points_increment, args.break_points_multiplier, args.split_on_colour,
+                                args.colour_error_tolerance, args.colour_standard_deviation)
 
         _post_process_pages(pages, min_pixel_height_per_page)
         _handle_potential_orphan_page(pages, args.output_directory, min_pixel_height_last_page)
@@ -89,7 +90,8 @@ def run(args):
 def _cleanup(images, temp_directory):
     for image in images:
         image.close()
-    shutil.rmtree(temp_directory)
+    if os.path.exists(temp_directory):
+        shutil.rmtree(temp_directory)
 
 
 def _get_input_images(input_file_patterns, enable_input_sort):
@@ -239,16 +241,30 @@ def _ensure_directory(output_directory, clean):
     pass
 
 
-def _find_breakpoint(page, image, min_height_per_page, break_points_increment, break_points_multiplier, split_on_colour,
-                     colour_error_tolerance, colour_standard_deviation):
+def _find_breakpoint(page, image, min_height_per_page, breakpoint_buffer, break_points_increment,
+                     break_points_multiplier, split_on_colour, colour_error_tolerance, colour_standard_deviation):
     excess_height = page.calculate_uncropped_height() - page.crop_from_top - min_height_per_page
     offset = image.height - excess_height
     batch_sample_size = break_points_increment * break_points_multiplier
-    return imgmag.find_solid_row_of_colour(image, max(0, offset), batch_sample_size, break_points_increment,
-                                           split_on_colour, colour_error_tolerance, colour_standard_deviation)
+
+    if "%" in breakpoint_buffer:
+        max_range = image.height
+    else:
+        max_range = int(breakpoint_buffer.strip("px"))
+
+    (start, end) = imgmag.find_consecutive_rows_of_colour(image, max(0, offset), batch_sample_size,
+                                                          break_points_increment, max_range, split_on_colour,
+                                                          colour_error_tolerance, colour_standard_deviation)
+
+    if "%" in breakpoint_buffer:
+        buffer_percent = int(breakpoint_buffer.strip("%")) / 100.0
+        return int(start + (end - start) * buffer_percent)
+    else:
+        buffer_pixel = int(breakpoint_buffer.strip("px"))
+        return min(start + buffer_pixel, end)
 
 
-def _define_page(page, images, min_height_per_page, breakpoint_detection_mode, split_on_colour,
+def _define_page(page, images, min_height_per_page, breakpoint_detection_mode, breakpoint_buffer, split_on_colour,
                  colour_error_tolerance, colour_standard_deviation, break_points_increment,
                  break_points_multiplier):
     logger.inline("Finding images to combine into '{0}'".format(page.name))
@@ -277,9 +293,9 @@ def _define_page(page, images, min_height_per_page, breakpoint_detection_mode, s
                      .format(min_height=min_height_per_page, image=image.info["path"]))
         if breakpoint_detection_mode == 1:
             logger.inline("Searching for breakpoint in '{0}'".format(image.info["path"]))
-            breakpoint_row = _find_breakpoint(page, image, min_height_per_page, break_points_increment,
-                                              break_points_multiplier, split_on_colour, colour_error_tolerance,
-                                              colour_standard_deviation)
+            breakpoint_row = _find_breakpoint(page, image, min_height_per_page, breakpoint_buffer,
+                                              break_points_increment, break_points_multiplier, split_on_colour,
+                                              colour_error_tolerance, colour_standard_deviation)
             if breakpoint_row >= 0:
                 page.crop_from_bottom = image.height - breakpoint_row
                 return
@@ -323,8 +339,9 @@ def _crop_page(page, output_file_width, output_directory):
 
 
 def _combine_images(images, output_directory, output_file_prefix, output_file_starting_number, extension,
-                    min_height_per_page, output_file_width, breakpoint_detection_mode, break_points_increment,
-                    break_points_multiplier, split_on_colour, colour_error_tolerance, colour_standard_deviation):
+                    min_height_per_page, output_file_width, breakpoint_detection_mode, breakpoint_buffer,
+                    break_points_increment, break_points_multiplier, split_on_colour, colour_error_tolerance,
+                    colour_standard_deviation):
     image_index = 0
     total_image_count = len(images)
     pages = []
@@ -344,8 +361,9 @@ def _combine_images(images, output_directory, output_file_prefix, output_file_st
 
         pages.append(page)
 
-        _define_page(page, images[image_index:], min_height_per_page, breakpoint_detection_mode, split_on_colour,
-                     colour_error_tolerance, colour_standard_deviation, break_points_increment, break_points_multiplier)
+        _define_page(page, images[image_index:], min_height_per_page, breakpoint_detection_mode, breakpoint_buffer,
+                     split_on_colour, colour_error_tolerance, colour_standard_deviation, break_points_increment,
+                     break_points_multiplier)
         _stitch_page(page, output_directory)
         _crop_page(page, output_file_width, output_directory)
 

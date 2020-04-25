@@ -38,6 +38,9 @@ def parse(input=None):
                         help="The 'mode' that the script uses to detect where to split up pages. Mode 0 will split pages "
                              "when an input image ends in a breakpoint colour. Mode 1 will scan through out the input "
                              "images to find a breakpoint.")
+    parser.add_argument("-bb", "--breakpoint-buffer", default="20px", type=breakpoint_buffer_formats,
+                        help="When in Breakpoint Detection Mode #1 this value controls how much space to try to leave "
+                             "between the last known non-breakpoint area and the actual breakpoint itself.")
     parser.add_argument("-bi", "--break-points-increment", default=10, type=int,
                         help="When in Breakpoint Detection Mode #1 this value controls how often the script tests a line "
                              "in an image file for a breakpoint.")
@@ -117,6 +120,10 @@ pattern_percent = "^[0-9]{1,3}%$"
 
 def page_height_formats(arg_value):
     return validate_patterns(arg_value, [pattern_pixels, pattern_ratio, pattern_fraction, pattern_percent])
+
+
+def breakpoint_buffer_formats(arg_value):
+    return validate_patterns(arg_value, [pattern_pixels, pattern_percent])
 
 
 def matches(arg_value, pattern):
