@@ -46,7 +46,7 @@ class MainWindow(tk.Frame):
         tk.Frame.__init__(self, master)
         self.master = master
         self.master.iconbitmap(default=resource_path('resources' + os.sep + 'pow_icon.ico'))
-        self.master.title("Comic Compiler (by bajuwa)")
+        self.master.title("Comic Compiler v1.2.1 (by bajuwa)")
         self.master.resizable(False, False)
         self.grid_columnconfigure(1, weight=1)
         self.grid(pady=3, padx=3)
