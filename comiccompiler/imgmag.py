@@ -1,4 +1,5 @@
 import subprocess
+import re
 
 from . import logger
 
@@ -7,10 +8,10 @@ from . import logger
 def _command(command):
     # print("Running command: " + command)
     # For whatever reason, close_fds=True causes the program to run reeaaally slowly. Like 2x as slow.
-    process = subprocess.Popen(command, shell=True, close_fds=False, universal_newlines=True,
+    process = subprocess.Popen(command, shell=True, close_fds=False,
                                stdin=subprocess.PIPE, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
     out, err = process.communicate()
-    return out
+    return out.decode('utf-8')
 
 
 def _identify(params):
@@ -25,42 +26,49 @@ def _compare(params):
     return _command("magick compare " + params)
 
 
+def _ensure_quotes(path):
+    if path.startswith('"'):
+        return path
+
+    sample_regex = re.search(r"^(.+)([.+])$", path)
+    if sample_regex is not None:
+        return '"' + sample_regex.group(1) + '"' + sample_regex.group(2)
+
+    return '"' + path + '"'
+
+
 def get_image_width(image_path):
-    return int(_identify('-format "%w" "' + image_path + '"'))
+    return int(_identify('-format "%w" ' + _ensure_quotes(image_path)))
 
 
 def get_image_height(image_path):
-    return int(_identify('-format "%h" "' + image_path + '"'))
+    return int(_identify('-format "%h" ' + _ensure_quotes(image_path)))
 
 
 def get_image_gray_min(image_path):
-    return round(float(_identify('-format %[min] "' + image_path + '"')))
+    return round(float(_identify('-format %[min] ' + _ensure_quotes(image_path))))
 
 
 def get_image_gray_mean(image_path):
-    return round(float(_identify('-format %[mean] "' + image_path + '"')))
+    return round(float(_identify('-format %[mean] ' + _ensure_quotes(image_path))))
 
 
 def get_image_gray_max(image_path):
-    return round(float(_identify('-format %[max] "' + image_path + '"')))
+    return round(float(_identify('-format %[max] ' + _ensure_quotes(image_path))))
 
 
 def get_image_standard_deviation(image_path):
-    return round(float(_identify('-format %[standard-deviation] "' + image_path + '"')))
+    return round(float(_identify('-format %[standard-deviation] ' + _ensure_quotes(image_path))))
 
 
 def resize_width(target_width, image_path):
-    _convert('"{file}" -adaptive-resize {width}x "{file}"'.format(file=image_path, width=target_width))
+    _convert('{file} -adaptive-resize {width}x {file}'.format(file=_ensure_quotes(image_path), width=target_width))
     pass
 
 
-def _compare_files(file_one, file_two):
-    result = _compare('-metric rmse "{}" "{}" null: 2>&1'.format(file_one, file_two))
-    logger.verbose("Compared {} and {} to get result: {}".format(file_one, file_two, result))
-    return result
-
-
-def _compare_samples(sample_one, sample_two):
+def _compare_files(one, two):
+    sample_one = _ensure_quotes(one)
+    sample_two = _ensure_quotes(two)
     result = _compare('-metric rmse {} {} null: 2>&1'.format(sample_one, sample_two))
     logger.verbose("Compared {} and {} to get result: {}".format(sample_one, sample_two, result))
     return result
@@ -71,10 +79,7 @@ def matches(file_one, file_two):
 
 
 def almost_matches(file_one, file_two):
-    if "[" in file_one or "[" in file_two:
-        result = _compare_samples(file_one, file_two)
-    else:
-        result = _compare_files(file_one, file_two)
+    result = _compare_files(file_one, file_two)
     logger.verbose("File sample comparison result: " + result)
     return result == "0 (0)" or " (0.0" in result or " (0.1" in result
 
@@ -83,9 +88,9 @@ def combine_vertically(input_image_paths, output_image_path):
     # -append           : will stitch together the images vertically
     # -colorspace sRGB  : prevents a single white/black image from making the whole page black/white
     logger.debug("Combining images into output file: " + output_image_path)
-    _convert('-append {images} -colorspace sRGB "{output_page_name}"'.format(
-        images=" ".join(map(lambda image_path: '"' + str(image_path) + '"', input_image_paths)),
-        output_page_name=output_image_path)
+    _convert('-append {images} -colorspace sRGB {output_page_name}'.format(
+        images=" ".join(map(lambda image_path: _ensure_quotes(str(image_path)), input_image_paths)),
+        output_page_name=_ensure_quotes(output_image_path))
     )
     pass
 
@@ -95,7 +100,7 @@ def crop_in_place(file, width, height, top_offset):
         width=width, height=height, top_offset=top_offset
     )
     logger.debug("Cropping: {file}[{sample}]".format(file=file, sample=crop_sample_range))
-    _convert('-crop {sample} "{file}" "{file}"'.format(sample=crop_sample_range, file=file))
+    _convert('-crop {sample} {file} {file}'.format(sample=crop_sample_range, file=_ensure_quotes(file)))
     pass
 
 

@@ -253,7 +253,7 @@ class OutputFrame(tk.LabelFrame):
         )
         if os.path.isdir(directory):
             self.output_directory.delete(0, tk.END)
-            self.output_directory.insert(0, directory + "/")
+            self.output_directory.insert(0, trim_and_quote(directory + "/"))
 
 
 class PageConfigFrame(tk.LabelFrame):

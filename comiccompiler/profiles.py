@@ -11,14 +11,14 @@ def load_profile(profile_name):
         if not os.path.exists(_get_profiles_file_name(profile_name)):
             return ""
 
-        with open(_get_profiles_file_name(profile_name), 'r') as file:
+        with open(_get_profiles_file_name(profile_name), 'r', encoding="utf-8") as file:
             return file.read()
 
 
 def save_profile(profile_name, profile_args):
     if profile_name is not None or profile_name != "":
         _ensure_profile_directory()
-        with open(_get_profiles_file_name(profile_name), 'w') as file:
+        with open(_get_profiles_file_name(profile_name), 'w', encoding="utf-8") as file:
             file.write(profile_args)
             file.close()
 
@@ -56,7 +56,7 @@ def _ensure_profile_directory():
         os.mkdir(_get_profile_directory())
     default_profile_file = _get_profiles_file_name("Default")
     if not os.path.exists(default_profile_file):
-        with open(default_profile_file, 'w') as file:
+        with open(default_profile_file, 'w', encoding="utf-8") as file:
             file.write("--open -f=C:/path/to/my/images/*.* -od=C:/path/to/my/images/Compiled")
             file.close()
 
