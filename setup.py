@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='comicom',
-    version='1.2.2',
+    version='1.2.3',
     scripts=['comicom.py', 'comgui-launcher.py'],
     author="bajuwa",
     author_email="justcallmebaj@gmail.com",
@@ -14,7 +14,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/bajuwa/ComicCompiler",
     packages=setuptools.find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']),
-    package_data={'resources': ['pow_icon.ico']},
+    package_data={'comiccompiler.resources': ['pow_icon.ico']},  # Not actually being included...
     include_package_data=True,
     install_requires=['natsort', 'pillow'],
     classifiers=[
