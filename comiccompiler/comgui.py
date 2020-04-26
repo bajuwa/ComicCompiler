@@ -14,18 +14,16 @@ from . import logger
 
 REDIRECT_LOGS = True
 
-command_line_documentation = "https://github.com/bajuwa/ComicCompiler/wiki/ComCom-(" \
-                             "Python-Version)#command-line-arguments "
-
-
 thread_pool_executor = futures.ThreadPoolExecutor(max_workers=1)
 
 
 def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
-    if os.path.exists(relative_path):
-        return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
+
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
+    if os.path.exists(path):
+        return path
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "../" + relative_path)
 
 
@@ -47,7 +45,7 @@ class MainWindow(tk.Frame):
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
         self.master = master
-        self.master.iconbitmap(default=resource_path('resources/pow_icon.ico'))
+        self.master.iconbitmap(default=resource_path('resources' + os.sep + 'pow_icon.ico'))
         self.master.title("Comic Compiler (by bajuwa)")
         self.master.resizable(False, False)
         self.grid_columnconfigure(1, weight=1)
