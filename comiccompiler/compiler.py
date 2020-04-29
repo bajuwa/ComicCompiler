@@ -184,12 +184,17 @@ def _predict_appropriate_breakpoint_mode(images, min_height_per_page, split_on_c
     avg_height_per_page = sum(heights_between_file_end_breakpoints) / len(heights_between_file_end_breakpoints)
     logger.verbose("total list: " + str(heights_between_file_end_breakpoints))
     logger.verbose("avg height per page: " + str(avg_height_per_page))
-    if avg_height_per_page < min_height_per_page:
+    if avg_height_per_page > 0.67 * min_height_per_page:
+        logger.info("Breakpoint mode: Dynamic Search")
+        logger.debug("(average height between file endings too long)")
+        return 1
+    elif max(heights_between_file_end_breakpoints) >= min_height_per_page:
+        logger.info("Breakpoint mode: Dynamic Search")
+        logger.debug("(single page too long if only using file endings)")
+        return 1
+    else:
         logger.info("Breakpoint mode: End of File")
         return 0
-    else:
-        logger.info("Breakpoint mode: Dynamic Search")
-        return 1
 
 
 def _recalculate_height_relative_to_images(min_height_per_page, images):
@@ -244,8 +249,8 @@ def _ensure_directory(output_directory, clean):
 def _find_breakpoint(page, image, min_height_per_page, breakpoint_buffer, break_points_increment,
                      break_points_multiplier, split_on_colour, colour_error_tolerance, colour_standard_deviation):
     excess_height = page.calculate_uncropped_height() - page.crop_from_top - min_height_per_page
-    offset = image.height - excess_height
-    batch_sample_size = break_points_increment * break_points_multiplier
+    offset = int(image.height - excess_height)
+    batch_sample_size = int(break_points_increment * break_points_multiplier)
 
     if "%" in breakpoint_buffer:
         max_range = image.height
