@@ -5,6 +5,7 @@ import shutil
 import glob
 import natsort
 import re
+import collections
 
 from PIL import Image
 
@@ -147,8 +148,9 @@ def _copy_to_temp(path, temp_directory):
 
 def _ensure_consistent_width(target_width, images, temp_directory):
     if target_width == 0:
-        logger.debug("No given width, extracting first images width: %s " % images[0].info["path"])
-        target_width = images[0].width
+        logger.debug("No given width, extracting highest frequency width...")
+        image_widths = [image.width for image in images]
+        target_width = collections.Counter(image_widths).most_common(1)[0][0]
 
     logger.info("Checking input images are target width: " + str(target_width))
 
