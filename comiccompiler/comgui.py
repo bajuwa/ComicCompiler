@@ -11,6 +11,7 @@ from . import profiles
 from . import arguments
 from . import compiler
 from . import logger
+from . import version
 
 REDIRECT_LOGS = True
 
@@ -18,9 +19,6 @@ thread_pool_executor = futures.ThreadPoolExecutor(max_workers=1)
 
 
 def resource_path(item):
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, 'resources' + os.sep + item)
-
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources' + os.sep + item)
     if os.path.exists(path):
         return path
@@ -49,7 +47,7 @@ class MainWindow(tk.Frame):
         icon_path = resource_path('pow_icon.ico')
         if icon_path is not None:
             self.master.iconbitmap(default=icon_path)
-        self.master.title("Comic Compiler v1.2.3 (by bajuwa)")
+        self.master.title("Comic Compiler v" + version.full + " (by bajuwa)")
         self.master.resizable(False, False)
         self.grid_columnconfigure(1, weight=1)
         self.grid(pady=3, padx=3)

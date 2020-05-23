@@ -5,7 +5,7 @@ block_cipher = None
 
 a = Analysis(['comgui-launcher.py'],
              pathex=['C:\\Users\\kayly\\repo\\ComicCompiler'],
-             binaries=[('resources', 'resources/')],
+             binaries=[('comiccompiler/resources', 'comiccompiler/resources/')],
              datas=[('comiccompiler', 'comiccompiler/')],
              hiddenimports=['pkg_resources.py2_warn'],
              hookspath=[],
@@ -30,4 +30,5 @@ exe = EXE(pyz,
           upx=True,
           upx_exclude=[],
           runtime_tmpdir=None,
-          console=False , icon='resources/pow_icon.ico')
+          console=False,
+          icon='comiccompiler/resources/pow_icon.ico')
