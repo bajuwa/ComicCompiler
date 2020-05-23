@@ -11,6 +11,7 @@ from . import profiles
 from . import arguments
 from . import compiler
 from . import logger
+from . import version
 
 REDIRECT_LOGS = True
 
@@ -49,7 +50,7 @@ class MainWindow(tk.Frame):
         icon_path = resource_path('pow_icon.ico')
         if icon_path is not None:
             self.master.iconbitmap(default=icon_path)
-        self.master.title("Comic Compiler v1.2.3 (by bajuwa)")
+        self.master.title("Comic Compiler v" + version.full + " (by bajuwa)")
         self.master.resizable(False, False)
         self.grid_columnconfigure(1, weight=1)
         self.grid(pady=3, padx=3)

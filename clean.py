@@ -15,3 +15,6 @@ if __name__ == '__main__':
     if os.path.exists("dist/"):
         print("deleting dist folder...")
         shutil.rmtree("dist/")
+    if os.path.exists("comicom.egg-info/"):
+        print("deleting egg-info folder...")
+        shutil.rmtree("comicom.egg-info/")

@@ -2,11 +2,16 @@ import argparse
 import shlex
 import re
 
+from comiccompiler import version
+
 
 def parse(input=None):
-    parser = argparse.ArgumentParser(description="Given a set of images, vertically combines them in to 'pages' where "
+    parser = argparse.ArgumentParser(prog="Comic Compiler",
+                                     description="Given a set of images, vertically combines them in to 'pages' where "
                                                  "the start/end of the page are solid white (or some other specified "
                                                  "colour).")
+    parser.add_argument("--version", action="version",
+                        version="%(prog)s v" + version.full)
 
     parser.add_argument("-m", "--min-height-per-page", default="5000px", type=page_height_formats,
                         help="The minimum allowed pixel height for each output page")
