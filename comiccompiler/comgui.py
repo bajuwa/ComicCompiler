@@ -19,9 +19,6 @@ thread_pool_executor = futures.ThreadPoolExecutor(max_workers=1)
 
 
 def resource_path(item):
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, 'resources' + os.sep + item)
-
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources' + os.sep + item)
     if os.path.exists(path):
         return path

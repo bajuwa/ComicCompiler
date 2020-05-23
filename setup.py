@@ -16,7 +16,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/bajuwa/ComicCompiler",
     packages=setuptools.find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']),
-    package_data={'comiccompiler.resources': ['pow_icon.ico']},  # Not actually being included...
+    package_data={'comiccompiler': ['resources/pow_icon.ico']},
     include_package_data=True,
     install_requires=['natsort', 'pillow'],
     classifiers=[
