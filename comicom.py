@@ -18,3 +18,7 @@ if __name__ == "__main__":
         window.mainloop()
     else:
         compiler.run(args)
+
+
+def run(parseable_args):
+    compiler.run(arguments.parse(parseable_args))

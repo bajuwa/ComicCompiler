@@ -7,7 +7,7 @@ from tkinter import filedialog, simpledialog
 from tkinter import font
 from concurrent import futures
 
-from . import profiles
+from . import localfiles
 from . import arguments
 from . import compiler
 from . import logger
@@ -144,7 +144,7 @@ class InfoAndProfilesFrame(tk.Frame):
 
         tk.Label(self, text="Profile:").grid(row=0, column=2, pady=3, padx=3)
 
-        self.profile_options = profiles.get_profile_names()
+        self.profile_options = localfiles.get_profile_names()
         self.profile_choice = tk.StringVar(self.master)
         self.profile_choice.trace('w', self.load_profile)
         self.profile_name = tk.OptionMenu(self, self.profile_choice, *self.profile_options)
@@ -163,23 +163,23 @@ class InfoAndProfilesFrame(tk.Frame):
         self.profile_choice.set(self.profile_options.index(profile_name))
 
     def load_profile(self, *args):
-        args_text = profiles.load_profile(self.profile_choice.get())
+        args_text = localfiles.load_profile(self.profile_choice.get())
         self.populate_args_from_text(args_text)
 
     def save_profile(self):
         profile_name = self.prompt_user_for_input(self.profile_choice.get())
-        profiles.save_profile(profile_name, self.get_args())
+        localfiles.save_profile(profile_name, self.get_args())
         self.refresh_profiles()
         self.profile_choice.set(profile_name)
 
     def delete_profile(self):
-        profiles.delete_profile(self.profile_choice.get())
+        localfiles.delete_profile(self.profile_choice.get())
         self.profile_options.remove(self.profile_choice.get())
         self.refresh_profiles()
         self.profile_choice.set("Default")
 
     def refresh_profiles(self):
-        self.profile_options = profiles.get_profile_names()
+        self.profile_options = localfiles.get_profile_names()
         menu = self.profile_name["menu"]
         menu.delete(0, "end")
         for string in self.profile_options:
