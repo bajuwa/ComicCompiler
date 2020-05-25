@@ -18,7 +18,13 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']),
     package_data={'comiccompiler': ['resources/pow_icon.ico']},
     include_package_data=True,
-    install_requires=['natsort', 'pillow'],
+    install_requires=[
+        'argunparse',
+        'manga-py',
+        'requests',
+        'natsort',
+        'pillow'
+    ],
     classifiers=[
         "Programming Language :: Python :: 3",
         # "LICENSE :: OSI APPROVED :: GNU General Public License v3 or later (GPLv3+)",

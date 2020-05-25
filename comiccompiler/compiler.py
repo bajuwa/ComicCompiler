@@ -3,12 +3,14 @@ import tempfile
 import time
 import shutil
 import glob
+import argunparse
 import natsort
 import re
 import collections
 
 from PIL import Image
 
+from . import version
 from . import imgmag
 from . import arguments
 from . import entities
@@ -68,6 +70,8 @@ def run(args):
 
         _post_process_pages(pages, min_pixel_height_per_page)
         _handle_potential_orphan_page(pages, args.output_directory, min_pixel_height_last_page)
+
+        _add_info_file(args.output_directory, args, images, pages)
 
         if args.open:
             if args.output_directory.startswith("./"):
@@ -402,3 +406,21 @@ def _handle_potential_orphan_page(pages, output_directory, expected_min_height_l
         image_paths = list(map(lambda page: output_directory + page.name, pages[-2:]))
         imgmag.combine_vertically(image_paths, image_paths[-2])
         os.remove(image_paths[-1])
+
+
+def _add_info_file(output_directory, args_used, images, pages):
+    unparser = argunparse.ArgumentUnparser()
+
+    args = {}
+    dashed_args = {}
+    args_vars = vars(args_used)
+    for key in list(args_vars.keys()):
+        dashed_args[key.replace("_", "-")] = args_vars[key]
+
+    arg_string = unparser.unparse(*args, **dashed_args)
+    with open(output_directory + "compilation.txt", 'w', encoding="utf-8") as file:
+        file.write("Compiled using Comicom v" + version.full + "\n\n")
+        file.write("Arguments: " + arg_string + "\n\n")
+        file.write("Input images: \n" + str(list(map(lambda image: str(image) + "\n", images))) + "\n\n")
+        file.write("Output pages: \n" + str(list(map(lambda page: str(page) + "\n", pages))) + "\n\n")
+        file.close()
