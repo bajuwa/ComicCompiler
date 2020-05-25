@@ -18,12 +18,12 @@ def main():
     args = extract_args()
     series_config = load_config(args.series)
 
-    print("")
     print("Processing series [{series}] chapter(s) {chapter}".format(series=args.series, chapter=args.chapters))
 
     folders = Directories(series_config.working_directory, series_config.folder_name)
 
     for chapter in args.chapters:
+        print("")
         print("Processing series [{series}] chapter {chapter}".format(series=args.series, chapter=chapter))
         folders.chapter_folder_name = "ch" + str(chapter).zfill(3)
         folders.input_chapter = folders.input + folders.chapter_folder_name + "/"
