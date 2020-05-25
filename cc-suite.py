@@ -10,7 +10,7 @@ import subprocess
 import math
 import comicom
 
-from comiccompiler import localfiles, waifu, imgmag
+from comiccompiler import localfiles, waifu, imgmag, logger
 from zipfile import ZipFile
 
 
@@ -18,13 +18,13 @@ def main():
     args = extract_args()
     series_config = load_config(args.series)
 
-    print("Processing series [{series}] chapter(s) {chapter}".format(series=args.series, chapter=args.chapters))
+    logger.info("Processing series [{series}] chapter(s) {chapter}".format(series=args.series, chapter=args.chapters))
 
     folders = Directories(series_config.working_directory, series_config.folder_name)
 
     for chapter in args.chapters:
-        print("")
-        print("Processing series [{series}] chapter {chapter}".format(series=args.series, chapter=chapter))
+        logger.info("")
+        logger.info("Processing series [{series}] chapter {chapter}".format(series=args.series, chapter=chapter))
         folders.chapter_folder_name = "ch" + str(chapter).zfill(3)
         folders.input_chapter = folders.input + folders.chapter_folder_name + "/"
         folders.compiled_chapter = folders.compiled + folders.chapter_folder_name + "/"
@@ -47,12 +47,12 @@ def extract_args():
 
 def _ensure_input_images(series_config, directories, chapter):
     if len(glob.glob(directories.input_chapter + "*.*")) > 0:
-        print("Found existing items in input folder, skipping download: "
+        logger.info("Found existing items in input folder, skipping download: "
               + str(glob.glob(directories.input_chapter)))
         return True
 
-    elif len(series_config.download_url) > 0:
-        print("Downloading from: " + series_config.download_url)
+    elif len(series_config.mangapy_source) > 0:
+        logger.info("Using mangapy to download from: " + series_config.mangapy_source)
 
         previous_zips = glob.glob(directories.downloaded + "*.zip")
         command = ["manga-py",
@@ -63,7 +63,7 @@ def _ensure_input_images(series_config, directories, chapter):
                    "-d", directories.series,
                    # Random attempt(s) to make the DL not silently fail....
                    "--min-free-space", str(math.ceil(random.random() * 100)),
-                   series_config.download_url]
+                   series_config.mangapy_source]
         subprocess.Popen(command, shell=True, close_fds=False,
                          stdin=subprocess.PIPE, stderr=subprocess.STDOUT,
                          stdout=subprocess.PIPE).communicate()
@@ -71,22 +71,22 @@ def _ensure_input_images(series_config, directories, chapter):
         downloaded_zips = list(set(current_zips) - set(previous_zips))
 
         if len(downloaded_zips) == 0:
-            print("Couldn't find downloaded zip folder to: " + directories.downloaded +
+            logger.info("Couldn't find downloaded zip folder to: " + directories.downloaded +
                   "\n(download may have failed or you may already have the zip)")
             return False
         elif len(downloaded_zips) > 1:
-            print("Detected multiple new downloaded zip folders: " + str(downloaded_zips) +
+            logger.info("Detected multiple new downloaded zip folders: " + str(downloaded_zips) +
                   "\n(can't determine which one to use, aborting)")
             return False
 
         with ZipFile(downloaded_zips[0], 'r') as zipObj:
             zipObj.extractall(directories.input_chapter)
     else:
-        print("Unable to find existing input and no download url given, moving items from: "
+        logger.info("Unable to find existing input and no download url given, moving items from: "
               + series_config.local_input)
         local_files = glob.glob(series_config.local_input)
         if len(local_files) == 0:
-            print("No files found in local directory")
+            logger.info("No files found in local directory")
             return False
         else:
             if not os.path.exists(directories.input_chapter):
@@ -99,33 +99,33 @@ def _ensure_input_images(series_config, directories, chapter):
 
 def _remove_ads(series_config, folders):
     if len(series_config.ads_folder) > 0:
-        print("Checking folder for ads to remove: " + series_config.ads_folder)
+        logger.info("Checking folder for ads to remove: " + series_config.ads_folder)
         ads = glob.glob(series_config.ads_folder + "*.*")
         input_files = glob.glob(folders.input_chapter + "*.jp*g")
         if len(ads) == 0 or len(input_files) == 0:
             return
 
-        print("Checking for any input images that roughly match these ad files: " + str(ads))
+        logger.info("Checking for any input images that roughly match these ad files: " + str(ads))
         i = len(input_files) - 1
         while any(imgmag.almost_matches(input_files[i], ad) for ad in ads):
-            print("Removing ad: " + input_files[i])
+            logger.info("Removing ad: " + input_files[i])
             os.remove(input_files[i])
             i -= 1
 
         i = 0
         while any(imgmag.almost_matches(input_files[i], ad) for ad in ads):
-            print("Removing ad: " + input_files[i])
+            logger.info("Removing ad: " + input_files[i])
             os.remove(input_files[i])
             i += 1
 
 
 def _waifu_input(series_config, folders):
     if len(series_config.waifu_key) > 0:
-        print("Detected waifu key")
+        logger.info("Detected waifu key")
         if len(glob.glob(folders.input_chapter + "*waifud.*")) == 0:
-            print("Processing with waifu...")
+            logger.info("Processing with waifu...")
             results = waifu.waifu(series_config.waifu_key, folders.input_chapter + "*.jp*g")
-            print("Waifu'd " + str(len(results)) + " files")
+            logger.info("Waifu'd " + str(len(results)) + " files")
         if len(series_config.arguments) > 0:
             series_config.arguments += " "
         series_config.arguments += "-f " + folders.input_chapter + "*-waifud.jp*g"
@@ -141,25 +141,25 @@ def _compile_input(series_config, folders, series):
     if len(series_config.arguments) > 0:
         full_arguments += " " + series_config.arguments
 
-    print("Running comicom with final arguments: " + full_arguments)
+    logger.info("Running comicom with final arguments: " + full_arguments)
     comicom.run(full_arguments)
 
 
 def load_config(series):
     config_file = localfiles.get_cc_suite_config_file()
-    print("Using configs: " + config_file)
+    logger.info("Using configs: " + config_file)
     config = configparser.ConfigParser()
     config.read(config_file)
 
     if config["default"] is None:
-        print("Unable to find required [default] section within the config file. \n"
+        logger.info("Unable to find required [default] section within the config file. \n"
               "It's recommended to delete your current config file and try again (a new one will be generated for you)")
         exit()
 
     blended_config = SeriesConfig(dict(config.items("default")))
 
     if series not in config.sections():
-        print("Could not find configuration for series key: {series}\n"
+        logger.info("Could not find configuration for series key: {series}\n"
               "Use 'cc-suite.py --config' to open the config file on your system and add a section for [{series}]"
               .format(series=series))
         exit()
@@ -170,7 +170,7 @@ def load_config(series):
         blended_config.folder_name = series
 
     if len(blended_config.working_directory) == 0:
-        print("Could not find configuration for: {key}\n"
+        logger.info("Could not find configuration for: {key}\n"
               "Use 'cc-suite.py --config' to open the config file on your system and add a section for [{key}]"
               .format(key="working_directory"))
         exit()
@@ -188,7 +188,7 @@ def open_file(filename):
 class OpenConfig(argparse.Action):
     def __call__(self, parser, namespace, values, option_string):
         config_file = localfiles.get_cc_suite_config_file()
-        print(config_file)
+        logger.info("Opening config file: " + config_file)
         open_file(config_file)
         parser.exit()
 
@@ -214,7 +214,7 @@ class IntOrRange(argparse.Action):
 class SeriesConfig:
     working_directory = None
     folder_name = None
-    download_url = None
+    mangapy_source = None
     local_input = None
     ads_folder = None
     waifu_key = None
@@ -228,8 +228,8 @@ class SeriesConfig:
             self.working_directory = source_dict["working_directory"]
         if "folder_name" in source_dict:
             self.folder_name = source_dict["folder_name"]
-        if "download_url" in source_dict:
-            self.download_url = source_dict["download_url"]
+        if "mangapy_source" in source_dict:
+            self.mangapy_source = source_dict["mangapy_source"]
         if "local_input" in source_dict:
             self.local_input = source_dict["local_input"]
         if "ads_folder" in source_dict:

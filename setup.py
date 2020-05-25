@@ -8,7 +8,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name='comicom',
     version=version.full,
-    scripts=['comicom.py', 'comgui-launcher.py'],
+    scripts=['comicom.py', 'comgui-launcher.py', 'cc-suite.py'],
     author="bajuwa",
     author_email="justcallmebaj@gmail.com",
     description="A script that stitches images together and breaks them in to pages based on available whitespace",

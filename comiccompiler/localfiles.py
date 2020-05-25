@@ -106,8 +106,8 @@ working_directory=C:/CCSuite/
 folder_name=
 # The url that you want to download your source images from (if download fails, program will stop)
 # for supported sources, see: https://manga-py.com/manga-py/#resources-list
-download_url=
-# The local path where you expect your input images to be (will ignore if you've included a download_url)
+mangapy_source=
+# The local path where you expect your input images to be (will ignore if you've included a mangapy_source)
 local_input=C:/Users/YOUR_NAME/Downloads/*.jpg
 # The local path where you've stored any ad files that you would like automatically removed from input images
 ads_folder=
