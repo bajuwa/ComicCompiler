@@ -4,8 +4,10 @@ import argparse
 import configparser
 import glob
 import os
+import random
 import shutil
 import subprocess
+import math
 import comicom
 
 from comiccompiler import localfiles, waifu, imgmag
@@ -27,7 +29,7 @@ def main():
         folders.input_chapter = folders.input + folders.chapter_folder_name + "/"
         folders.compiled_chapter = folders.compiled + folders.chapter_folder_name + "/"
 
-        if not _download_to_input_folder(series_config, folders, chapter):
+        if not _ensure_input_images(series_config, folders, chapter):
             continue
 
         _remove_ads(series_config, folders)
@@ -43,42 +45,54 @@ def extract_args():
     return parser.parse_args()
 
 
-def _download_to_input_folder(series_config, directories, chapter):
+def _ensure_input_images(series_config, directories, chapter):
     if len(glob.glob(directories.input_chapter + "*.*")) > 0:
-        print("Found existing images in input folder, skipping download: "
+        print("Found existing items in input folder, skipping download: "
               + str(glob.glob(directories.input_chapter)))
+        return True
+
     elif len(series_config.download_url) > 0:
-        downloaded_zips = glob.glob(directories.downloaded + "*vol_" + str(chapter).zfill(3) + ".zip")
-        if len(downloaded_zips) == 1:
-            print("Found existing downloaded zip, skipping download and using: " + downloaded_zips[0])
-        else:
-            if len(downloaded_zips) > 1:
-                print("Found multiple downloaded files that may match expected chapter "
-                      "(unable to reuse, will download again): \n" + downloaded_zips)
-            print("Downloading from: " + series_config.download_url)
-            command = ["manga-py",
-                       "--rewrite-exists-archives",
-                       "--skip-volumes", str(int(chapter) - 1),
-                       "--max-volumes", "1",
-                       "--name", "downloaded",
-                       "-d", directories.series,
-                       series_config.download_url]
-            subprocess.Popen(command, shell=True, close_fds=False,
-                             stdin=subprocess.PIPE, stderr=subprocess.STDOUT,
-                             stdout=subprocess.PIPE).communicate()
-            downloaded_zips = glob.glob(directories.downloaded + "*vol_" + str(chapter).zfill(3) + ".zip")
-            if len(downloaded_zips) == 0:
-                print("Couldn't find downloaded zip folder to: " + directories.downloaded +
-                      "\n(download may have failed or you may already have the zip)")
-                return False
+        print("Downloading from: " + series_config.download_url)
+
+        previous_zips = glob.glob(directories.downloaded + "*.zip")
+        command = ["manga-py",
+                   "--rewrite-exists-archives",
+                   "--skip-volumes", str(int(chapter) - 1),
+                   "--max-volumes", "1",
+                   "--name", "downloaded",
+                   "-d", directories.series,
+                   # Random attempt(s) to make the DL not silently fail....
+                   "--min-free-space", str(math.ceil(random.random() * 100)),
+                   series_config.download_url]
+        subprocess.Popen(command, shell=True, close_fds=False,
+                         stdin=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         stdout=subprocess.PIPE).communicate()
+        current_zips = glob.glob(directories.downloaded + "*.zip")
+        downloaded_zips = list(set(current_zips) - set(previous_zips))
+
+        if len(downloaded_zips) == 0:
+            print("Couldn't find downloaded zip folder to: " + directories.downloaded +
+                  "\n(download may have failed or you may already have the zip)")
+            return False
+        elif len(downloaded_zips) > 1:
+            print("Detected multiple new downloaded zip folders: " + str(downloaded_zips) +
+                  "\n(can't determine which one to use, aborting)")
+            return False
 
         with ZipFile(downloaded_zips[0], 'r') as zipObj:
             zipObj.extractall(directories.input_chapter)
     else:
         print("Unable to find existing input and no download url given, moving items from: "
               + series_config.local_input)
-        for file in glob.glob(series_config.local_input):
-            shutil.move(file, directories.input_chapter)
+        local_files = glob.glob(series_config.local_input)
+        if len(local_files) == 0:
+            print("No files found in local directory")
+            return False
+        else:
+            if not os.path.exists(directories.input_chapter):
+                os.mkdir(directories.input_chapter)
+            for file in local_files:
+                shutil.move(file, directories.input_chapter)
 
     return True
 
@@ -120,7 +134,6 @@ def _waifu_input(series_config, folders):
 def _compile_input(series_config, folders, series):
     full_arguments = "-f {input_chapter_folder}*[!waifud].* " \
                      "-od {compiled_chapter_folder} " \
-                     "-o {series}_{chapter_folder_name}_page " \
                      "--clean".format(input_chapter_folder=folders.input_chapter,
                                       compiled_chapter_folder=folders.compiled_chapter,
                                       chapter_folder_name=folders.chapter_folder_name,
