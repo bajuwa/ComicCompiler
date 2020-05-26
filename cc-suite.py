@@ -9,6 +9,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+from timeit import default_timer
 
 import math
 import comicom
@@ -131,13 +132,19 @@ def _waifu_input(series_config, folders):
         logger.info("Detected waifu key")
         if len(glob.glob(folders.input_chapter + "*waifud.*")) == 0:
             input_files = glob.glob(folders.input_chapter + "*.*")
+
             temp_directory = tempfile.mkdtemp(prefix="prewaifu") + "/"
             logger.info("Processing with waifu using temp directory: " + temp_directory)
             for input_file in input_files:
                 split_to_temp(input_file, temp_directory)
+
+            starttime = default_timer()
             results = waifu.waifu(series_config.waifu_key, temp_directory + "*.*", folders.input_chapter)
+            elapsed = default_timer() - starttime
+
+            logger.info("Waifu'd " + str(len(results)) + " files in {:5.2f}s".format(elapsed))
             shutil.rmtree(temp_directory, ignore_errors=True)
-            logger.info("Waifu'd " + str(len(results)) + " files")
+
         if len(series_config.arguments) > 0:
             series_config.arguments += " "
         series_config.arguments += "-f " + folders.input_chapter + "*-waifud.jp*g"
