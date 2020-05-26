@@ -21,15 +21,14 @@ from PIL import Image
 
 def main():
     args = extract_args()
-    series_config = load_config(args.series)
-
     logger.info("Processing series [{series}] chapter(s) {chapter}".format(series=args.series, chapter=args.chapters))
 
-    folders = Directories(series_config.working_directory, series_config.folder_name)
-
     for chapter in args.chapters:
+        series_config = load_config(args.series)
+        folders = Directories(series_config.working_directory, series_config.folder_name)
         logger.info("")
         logger.info("Processing series [{series}] chapter {chapter}".format(series=args.series, chapter=chapter))
+
         split_on_decimal = chapter.split(".")
         folders.chapter_folder_name = "ch" + str(split_on_decimal[0]).zfill(3)
         if len(split_on_decimal) > 1:
@@ -249,7 +248,7 @@ class DecimalOrIntRange(argparse.Action):
         setattr(args, self.dest, chapters)
 
     def _is_int_or_decimal(self, param):
-        return re.fullmatch(r"\d+(.\d+)", param)
+        return re.fullmatch(r"\d+(.\d+)?", param)
 
 
 class SeriesConfig:
