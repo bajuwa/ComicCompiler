@@ -36,7 +36,7 @@ def main():
         folders.input_chapter = folders.input + folders.chapter_folder_name + "/"
         folders.compiled_chapter = folders.compiled + folders.chapter_folder_name + "/"
 
-        if not _ensure_input_images(series_config, folders, chapter):
+        if not _ensure_input_images(series_config, folders, chapter, args.local):
             continue
 
         _remove_ads(series_config, folders)
@@ -47,18 +47,20 @@ def main():
 def extract_args():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--config', nargs=0, action=OpenConfig, help='Opens the config file for editing')
+    parser.add_argument('--local', nargs=0, action="store_true",
+                        help='Ignores any download config options and uses local directory')
     parser.add_argument('series', help='The key used for the series (should match the [series] line in the config)')
     parser.add_argument('chapters', nargs='+', action=DecimalOrIntRange, help='The chapters the should be processed')
     return parser.parse_args()
 
 
-def _ensure_input_images(series_config, directories, chapter):
+def _ensure_input_images(series_config, directories, chapter, force_local):
     if len(glob.glob(directories.input_chapter + "*.*")) > 0:
         logger.info("Found existing items in input folder, skipping download: "
               + str(glob.glob(directories.input_chapter)))
         return True
 
-    elif len(series_config.mangapy_source) > 0:
+    elif not force_local and len(series_config.mangapy_source) > 0:
         logger.info("Using mangapy to download from: " + series_config.mangapy_source)
 
         previous_zips = glob.glob(directories.downloaded + "*.zip")
@@ -79,18 +81,17 @@ def _ensure_input_images(series_config, directories, chapter):
 
         if len(downloaded_zips) == 0:
             logger.info("Couldn't find downloaded zip folder to: " + directories.downloaded +
-                  "\n(download may have failed or you may already have the zip)")
+                        "\n(download may have failed or you may already have the zip)")
             return False
         elif len(downloaded_zips) > 1:
             logger.info("Detected multiple new downloaded zip folders: " + str(downloaded_zips) +
-                  "\n(can't determine which one to use, aborting)")
+                        "\n(can't determine which one to use, aborting)")
             return False
 
         with ZipFile(downloaded_zips[0], 'r') as zipObj:
             zipObj.extractall(directories.input_chapter)
     else:
-        logger.info("Unable to find existing input and no download url given, moving items from: "
-              + series_config.local_input)
+        logger.info("Sourcing input images from: " + series_config.local_input)
         local_files = glob.glob(series_config.local_input)
         if len(local_files) == 0:
             logger.info("No files found in local directory")
