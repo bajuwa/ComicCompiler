@@ -7,11 +7,14 @@ import os
 import random
 import shutil
 import subprocess
+import tempfile
+
 import math
 import comicom
 
 from comiccompiler import localfiles, waifu, imgmag, logger
 from zipfile import ZipFile
+from PIL import Image
 
 
 def main():
@@ -123,12 +126,32 @@ def _waifu_input(series_config, folders):
     if len(series_config.waifu_key) > 0:
         logger.info("Detected waifu key")
         if len(glob.glob(folders.input_chapter + "*waifud.*")) == 0:
-            logger.info("Processing with waifu...")
-            results = waifu.waifu(series_config.waifu_key, folders.input_chapter + "*.jp*g")
+            input_files = glob.glob(folders.input_chapter + "*.*")
+            temp_directory = tempfile.mkdtemp(prefix="prewaifu") + "/"
+            logger.info("Processing with waifu using temp directory: " + temp_directory)
+            for input_file in input_files:
+                split_to_temp(input_file, temp_directory)
+            results = waifu.waifu(series_config.waifu_key, temp_directory + "*.*", folders.input_chapter)
+            shutil.rmtree(temp_directory, ignore_errors=True)
             logger.info("Waifu'd " + str(len(results)) + " files")
         if len(series_config.arguments) > 0:
             series_config.arguments += " "
         series_config.arguments += "-f " + folders.input_chapter + "*-waifud.jp*g"
+
+
+def split_to_temp(filepath, temp_directory):
+    image = Image.open(filepath)
+    # Create temp folder and copy files over (if <=800px high)
+    if image.height <= 800:
+        shutil.copy(filepath, temp_directory)
+    else:
+        # If >800px then waifu will return a file that isn't 2x width
+        # (which will cause issues for compilation)
+        print("Image was too tall to send to waifu (>800px), splitting before waifu: " + filepath)
+        path, filename = os.path.split(filepath)
+        filename_noext, extension = filename.split('.')
+        imgmag.split(filepath, 800, temp_directory + filename_noext, extension)
+    image.close()
 
 
 def _compile_input(series_config, folders, series):

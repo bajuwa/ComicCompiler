@@ -106,6 +106,8 @@ working_directory=C:/CCSuite/
 folder_name=
 # The url that you want to download your source images from (if download fails, program will stop)
 # for supported sources, see: https://manga-py.com/manga-py/#resources-list
+# Note: The 'chapter number' you provide to mangapy should match the index of the chapter list on the site you're downloading from
+# Example: If the series has a 'preview', then that will be at index 1 and the actual 'chapter 1' will be at index 2
 mangapy_source=
 # The local path where you expect your input images to be (will ignore if you've included a mangapy_source)
 local_input=C:/Users/YOUR_NAME/Downloads/*.jpg
