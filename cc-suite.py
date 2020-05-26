@@ -4,19 +4,16 @@ import argparse
 import configparser
 import glob
 import os
-import random
 import re
 import shutil
 import subprocess
 import tempfile
 from timeit import default_timer
 
-import math
-import comicom
-
-from comiccompiler import localfiles, waifu, imgmag, logger
-from zipfile import ZipFile
 from PIL import Image
+
+import comicom
+from comiccompiler import localfiles, waifu, imgmag, logger, downloader
 
 
 def main():
@@ -36,7 +33,7 @@ def main():
         folders.input_chapter = folders.input + folders.chapter_folder_name + "/"
         folders.compiled_chapter = folders.compiled + folders.chapter_folder_name + "/"
 
-        if not _ensure_input_images(series_config, folders, chapter, args.local):
+        if not _ensure_input_images(series_config, folders, chapter, args.skip_download):
             continue
 
         _remove_ads(series_config, folders)
@@ -47,49 +44,23 @@ def main():
 def extract_args():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--config', nargs=0, action=OpenConfig, help='Opens the config file for editing')
-    parser.add_argument('--local', nargs=0, action="store_true",
+    parser.add_argument('--skip-download', nargs=0, action="store_true",
                         help='Ignores any download config options and uses local directory')
     parser.add_argument('series', help='The key used for the series (should match the [series] line in the config)')
     parser.add_argument('chapters', nargs='+', action=DecimalOrIntRange, help='The chapters the should be processed')
     return parser.parse_args()
 
 
-def _ensure_input_images(series_config, directories, chapter, force_local):
+def _ensure_input_images(series_config, directories, chapter, skip_download):
     if len(glob.glob(directories.input_chapter + "*.*")) > 0:
         logger.info("Found existing items in input folder, skipping download: "
-              + str(glob.glob(directories.input_chapter)))
+                    + str(glob.glob(directories.input_chapter)))
         return True
 
-    elif not force_local and len(series_config.mangapy_source) > 0:
+    elif skip_download or len(series_config.mangapy_source) > 0:
         logger.info("Using mangapy to download from: " + series_config.mangapy_source)
+        return downloader.via_mangapy(series_config.mangapy_source, chapter, directories.input_chapter)
 
-        previous_zips = glob.glob(directories.downloaded + "*.zip")
-        command = ["manga-py",
-                   "--rewrite-exists-archives",
-                   "--skip-volumes", str(int(chapter) - 1),
-                   "--max-volumes", "1",
-                   "--name", "downloaded",
-                   "-d", directories.series,
-                   # Random attempt(s) to make the DL not silently fail....
-                   "--min-free-space", str(math.ceil(random.random() * 100)),
-                   series_config.mangapy_source]
-        subprocess.Popen(command, shell=True, close_fds=False,
-                         stdin=subprocess.PIPE, stderr=subprocess.STDOUT,
-                         stdout=subprocess.PIPE).communicate()
-        current_zips = glob.glob(directories.downloaded + "*.zip")
-        downloaded_zips = list(set(current_zips) - set(previous_zips))
-
-        if len(downloaded_zips) == 0:
-            logger.info("Couldn't find downloaded zip folder to: " + directories.downloaded +
-                        "\n(download may have failed or you may already have the zip)")
-            return False
-        elif len(downloaded_zips) > 1:
-            logger.info("Detected multiple new downloaded zip folders: " + str(downloaded_zips) +
-                        "\n(can't determine which one to use, aborting)")
-            return False
-
-        with ZipFile(downloaded_zips[0], 'r') as zipObj:
-            zipObj.extractall(directories.input_chapter)
     else:
         logger.info("Sourcing input images from: " + series_config.local_input)
         local_files = glob.glob(series_config.local_input)
@@ -190,7 +161,7 @@ def load_config(series):
 
     if config["default"] is None:
         logger.info("Unable to find required [default] section within the config file. \n"
-              "It's recommended to delete your current config file and try again (a new one will be generated for you)")
+                    "It's recommended to delete your current config file and try again (a new one will be generated for you)")
         exit()
 
     blended_config = SeriesConfig(dict(config.items("default")))
@@ -209,8 +180,8 @@ def load_config(series):
 
     if len(blended_config.working_directory) == 0:
         logger.info("Could not find configuration for: {key}\n"
-              "Use 'cc-suite.py --config' to open the config file on your system and add a section for [{key}]"
-              .format(key="working_directory"))
+                    "Use 'cc-suite.py --config' to open the config file on your system and add a section for [{key}]"
+                    .format(key="working_directory"))
         exit()
 
     return blended_config
