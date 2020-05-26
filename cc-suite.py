@@ -5,6 +5,7 @@ import configparser
 import glob
 import os
 import random
+import re
 import shutil
 import subprocess
 import tempfile
@@ -28,7 +29,10 @@ def main():
     for chapter in args.chapters:
         logger.info("")
         logger.info("Processing series [{series}] chapter {chapter}".format(series=args.series, chapter=chapter))
-        folders.chapter_folder_name = "ch" + str(chapter).zfill(3)
+        split_on_decimal = chapter.split(".")
+        folders.chapter_folder_name = "ch" + str(split_on_decimal[0]).zfill(3)
+        if len(split_on_decimal) > 1:
+            folders.chapter_folder_name += "." + split_on_decimal[1]
         folders.input_chapter = folders.input + folders.chapter_folder_name + "/"
         folders.compiled_chapter = folders.compiled + folders.chapter_folder_name + "/"
 
@@ -44,7 +48,7 @@ def extract_args():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--config', nargs=0, action=OpenConfig, help='Opens the config file for editing')
     parser.add_argument('series', help='The key used for the series (should match the [series] line in the config)')
-    parser.add_argument('chapters', nargs='+', action=IntOrRange, help='The chapters the should be processed')
+    parser.add_argument('chapters', nargs='+', action=DecimalOrIntRange, help='The chapters the should be processed')
     return parser.parse_args()
 
 
@@ -140,18 +144,21 @@ def _waifu_input(series_config, folders):
 
 
 def split_to_temp(filepath, temp_directory):
-    image = Image.open(filepath)
-    # Create temp folder and copy files over (if <=800px high)
-    if image.height <= 800:
-        shutil.copy(filepath, temp_directory)
-    else:
-        # If >800px then waifu will return a file that isn't 2x width
-        # (which will cause issues for compilation)
-        print("Image was too tall to send to waifu (>800px), splitting before waifu: " + filepath)
-        path, filename = os.path.split(filepath)
-        filename_noext, extension = filename.split('.')
-        imgmag.split(filepath, 800, temp_directory + filename_noext, extension)
-    image.close()
+    try:
+        image = Image.open(filepath)
+        # Create temp folder and copy files over (if <=800px high)
+        if image.height <= 800:
+            shutil.copy(filepath, temp_directory)
+        else:
+            # If >800px then waifu will return a file that isn't 2x width
+            # (which will cause issues for compilation)
+            print("Image was too tall to send to waifu (>800px), splitting before waifu: " + filepath)
+            path, filename = os.path.split(filepath)
+            filename_noext, extension = filename.split('.')
+            imgmag.split(filepath, 800, temp_directory + filename_noext, extension)
+        image.close()
+    except IOError:
+        pass
 
 
 def _compile_input(series_config, folders, series):
@@ -217,14 +224,14 @@ class OpenConfig(argparse.Action):
         parser.exit()
 
 
-class IntOrRange(argparse.Action):
+class DecimalOrIntRange(argparse.Action):
     def __call__(self, parser, args, values, option_string=None):
         chapters = []
         try:
             for value in values:
                 split = value.split('-')
-                if len(split) == 1:
-                    chapters.append(str(int(split[0])))
+                if len(split) == 1 and self._is_int_or_decimal(split[0]):
+                    chapters.append(split[0])
                 elif len(split) == 2 and int(split[0]) < int(split[1]):
                     chapters += map(lambda v: str(v), range(int(split[0]), int(split[1]) + 1))
                 else:
@@ -233,6 +240,9 @@ class IntOrRange(argparse.Action):
             raise argparse.ArgumentTypeError('Could not interpret input chapter numbers/ranges')
 
         setattr(args, self.dest, chapters)
+
+    def _is_int_or_decimal(self, param):
+        return re.fullmatch(r"\d+(.\d+)", param)
 
 
 class SeriesConfig:
