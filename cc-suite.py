@@ -159,10 +159,11 @@ def load_config(series):
     blended_config = SeriesConfig(dict(config.items("default")))
 
     if series not in config.sections():
-        logger.info("Could not find configuration for series key: {series}\n"
-              "Use 'cc-suite.py --config' to open the config file on your system and add a section for [{series}]"
-              .format(series=series))
-        exit()
+        logger.info("Could not find configuration for series key, proceeding with default config: {series}\n"
+                    "Use 'cc-suite.py --config' to open the config file on your system and add a section for [{series}]"
+                    .format(series=series))
+        blended_config.folder_name = series
+        return blended_config
 
     blended_config.load(dict(config.items(series)))
 
