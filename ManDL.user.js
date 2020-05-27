@@ -84,17 +84,23 @@ function addConfigOptions(parentElement, optionTitle, defaultValue, consumer) {
     );
 };
 
+var scrollInterval = false;
 function scrollToBottom() {
     console.log("Scroll with configurations...");
     console.log("AutoScroll pixels: " + AUTOSCROLL_PIXELS);
     console.log("AutoScroll MS interval: " + AUTOSCROLL_MS_INTERVAL);
-    var interval = setInterval( function(){
-        if (window.location.href.includes("ac.qq")) {
-            $("#mainView").scrollTop($("#mainView").scrollTop() + AUTOSCROLL_PIXELS);
-        } else {
-            window.scrollBy(0, AUTOSCROLL_PIXELS);
-        }
-    }, AUTOSCROLL_MS_INTERVAL);
+    if (scrollInterval) {
+        clearInterval(scrollInterval);
+        scrollInterval = false;
+    } else {
+        scrollInterval = setInterval( function(){
+            if (window.location.href.includes("ac.qq")) {
+                $("#mainView").scrollTop($("#mainView").scrollTop() + AUTOSCROLL_PIXELS);
+            } else {
+                window.scrollBy(0, AUTOSCROLL_PIXELS);
+            }
+        }, AUTOSCROLL_MS_INTERVAL);
+    }
 }
 
 function downloadImages() {
@@ -129,8 +135,6 @@ function findImagesFromSource(sourceHref) {
         return $("img[src*=\"manhua_detail\"]");
     } else if (sourceHref.includes("manhuadui")) {
         return $("div#images img[src$=jpg]");
-    } else if (sourceHref.includes("kuman5")) {
-        return $("div.readForm#cp_img img");
     } else {
         console.log("WARNING: Could not determine appropriate scraping criteria, downloading all images");
         return $("img[src$=jpg]");
@@ -138,7 +142,7 @@ function findImagesFromSource(sourceHref) {
 }
 
 function pad(n, width, z) {
-    z = z || '0';
-    n = n + '';
-    return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+  z = z || '0';
+  n = n + '';
+  return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
 }
