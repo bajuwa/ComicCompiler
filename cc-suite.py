@@ -12,8 +12,7 @@ from timeit import default_timer
 
 from PIL import Image
 
-import comicom
-from comiccompiler import localfiles, waifu, imgmag, logger, downloader
+from comiccompiler import localfiles, waifu, imgmag, logger, downloader, arguments, compiler
 
 
 def main():
@@ -150,7 +149,7 @@ def _compile_input(series_config, folders, series):
         full_arguments += " " + series_config.arguments
 
     logger.info("Running comicom with final arguments: " + full_arguments)
-    comicom.run(full_arguments)
+    compiler.run(arguments.parse(full_arguments))
 
 
 def load_config(series):

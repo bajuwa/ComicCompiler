@@ -6,7 +6,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 import requests
 import glob
 
-from comiccompiler import logger
+from . import logger
 
 
 def waifu(key, file_pattern, target_directory):

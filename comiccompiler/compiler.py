@@ -3,7 +3,6 @@ import tempfile
 import time
 import shutil
 import glob
-import argunparse
 import natsort
 import re
 import collections
@@ -409,18 +408,9 @@ def _handle_potential_orphan_page(pages, output_directory, expected_min_height_l
 
 
 def _add_info_file(output_directory, args_used, images, pages):
-    unparser = argunparse.ArgumentUnparser()
-
-    args = {}
-    dashed_args = {}
-    args_vars = vars(args_used)
-    for key in list(args_vars.keys()):
-        dashed_args[key.replace("_", "-")] = args_vars[key]
-
-    arg_string = unparser.unparse(*args, **dashed_args)
     with open(output_directory + "compilation.txt", 'w', encoding="utf-8") as file:
         file.write("Compiled using Comicom v" + version.full + "\n\n")
-        file.write("Arguments: " + arg_string + "\n\n")
+        file.write("Arguments: " + str(args_used) + "\n\n")
         file.write("Input images: \n" + str(list(map(lambda image: str(image) + "\n", images))) + "\n\n")
         file.write("Output pages: \n" + str(list(map(lambda page: str(page) + "\n", pages))) + "\n\n")
         file.close()
