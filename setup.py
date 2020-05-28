@@ -19,7 +19,6 @@ setuptools.setup(
     package_data={'comiccompiler': ['resources/pow_icon.ico']},
     include_package_data=True,
     install_requires=[
-        'manga-py',
         'requests',
         'natsort',
         'pillow'

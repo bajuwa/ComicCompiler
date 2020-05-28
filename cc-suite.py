@@ -43,7 +43,7 @@ def main():
 def extract_args():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--config', nargs=0, action=OpenConfig, help='Opens the config file for editing')
-    parser.add_argument('--skip-download', nargs=0, action="store_true",
+    parser.add_argument('--skip-download', action="store_true",
                         help='Ignores any download config options and uses local directory')
     parser.add_argument('series', help='The key used for the series (should match the [series] line in the config)')
     parser.add_argument('chapters', nargs='+', action=DecimalOrIntRange, help='The chapters the should be processed')

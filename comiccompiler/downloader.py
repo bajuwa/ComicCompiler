@@ -4,8 +4,8 @@ import glob
 import random
 import shutil
 import tempfile
+import subprocess
 
-from os import subprocess
 from zipfile import ZipFile
 
 import math
