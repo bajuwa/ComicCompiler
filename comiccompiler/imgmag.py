@@ -66,6 +66,13 @@ def resize_width(target_width, image_path):
     pass
 
 
+def split(image_path, max_height, file_path_prefix, extension):
+    _convert('{file} -crop x{height} {file_path_prefix}-%02d.{extension}'
+             .format(file=_ensure_quotes(image_path), height=max_height,
+                     file_path_prefix=file_path_prefix, extension=extension))
+    return None
+
+
 def _compare_files(one, two):
     sample_one = _ensure_quotes(one)
     sample_two = _ensure_quotes(two)

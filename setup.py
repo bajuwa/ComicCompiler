@@ -8,7 +8,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name='comicom',
     version=version.full,
-    scripts=['comicom.py', 'comgui-launcher.py'],
+    scripts=['comicom.py', 'comgui-launcher.py', 'cc-suite.py'],
     author="bajuwa",
     author_email="justcallmebaj@gmail.com",
     description="A script that stitches images together and breaks them in to pages based on available whitespace",
@@ -18,7 +18,12 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']),
     package_data={'comiccompiler': ['resources/pow_icon.ico']},
     include_package_data=True,
-    install_requires=['natsort', 'pillow'],
+    install_requires=[
+        'manga-py',
+        'requests',
+        'natsort',
+        'pillow'
+    ],
     classifiers=[
         "Programming Language :: Python :: 3",
         # "LICENSE :: OSI APPROVED :: GNU General Public License v3 or later (GPLv3+)",
