@@ -62,7 +62,7 @@ def get_image_standard_deviation(image_path):
 
 
 def resize_width(target_width, image_path):
-    _convert('{file} -adaptive-resize {width}x {file}'.format(file=_ensure_quotes(image_path), width=target_width))
+    _convert('{file} -resize {width}x {file}'.format(file=_ensure_quotes(image_path), width=target_width))
     pass
 
 
