@@ -67,7 +67,7 @@ def run(args):
                                 args.break_points_increment, args.break_points_multiplier, args.split_on_colour,
                                 args.colour_error_tolerance, args.colour_standard_deviation)
 
-        _post_process_pages(pages, min_pixel_height_per_page)
+        _post_process_pages(pages, min_pixel_height_per_page, args.output_directory)
         _handle_potential_orphan_page(pages, args.output_directory, min_pixel_height_last_page)
 
         _add_info_file(args.output_directory, args, images, pages)
@@ -387,15 +387,16 @@ def _combine_images(images, output_directory, output_file_prefix, output_file_st
     return pages
 
 
-def _post_process_pages(pages, expected_min_height):
-    trigger_warning = False
+def _post_process_pages(pages, expected_min_height, output_directory):
+    pages_too_high = []
     max_height_to_warn = expected_min_height * 1.8
     for page in pages:
         if page.calculate_cropped_height() >= max_height_to_warn:
-            trigger_warning = True
-    if trigger_warning:
-        logger.warn("Seems like you've got some pages that are much longer than your configured minimum "
-                    "height.  Check out our wiki's FAQ for ways to fix this\n"
+            pages_too_high.append(page.name)
+    if len(pages_too_high) > 0:
+        logger.warn("Seems like you've got some pages in " + output_directory +
+                    " that are much longer than your configured minimum height: " + str(pages_too_high) +
+                    "\nCheck out our wiki's FAQ for ways to fix this\n"
                     "https://github.com/bajuwa/ComicCompiler/wiki/Tutorial:-FAQ#troubleshooting-compiled-pages")
 
 
