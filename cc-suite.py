@@ -293,9 +293,7 @@ class SeriesConfig:
         if "waifu_scale" in source_dict:
             self.waifu_scale = source_dict["waifu_scale"]
         if "arguments" in source_dict:
-            if self.arguments is not None and len(self.arguments) > 0:
-                self.arguments += " "
-            self.arguments += source_dict["arguments"]
+            self.arguments = source_dict["arguments"]
 
 
 class Directories:
