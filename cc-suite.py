@@ -38,6 +38,7 @@ def main():
         _remove_ads(series_config, folders)
         _waifu_input(series_config, folders)
         _compile_input(series_config, folders, args.series)
+        _waifu_command(series_config, folders)
 
 
 def extract_args():
@@ -118,6 +119,38 @@ def _waifu_input(series_config, folders):
         if len(series_config.arguments) > 0:
             series_config.arguments += " "
         series_config.arguments += "-f " + folders.input_chapter + "*-waifud.jp*g"
+
+
+def _waifu_command(series_config, folders):
+    if len(series_config.waifu_command) > 0:
+        logger.info("Detected waifu command: " + series_config.waifu_command)
+        wd = os.getcwd()
+        starttime = default_timer()
+        result_count = 0
+        try:
+            if len(series_config.waifu_working_directory) > 0:
+                os.chdir(series_config.waifu_working_directory)
+
+            for filepath in glob.glob(folders.compiled_chapter + "*.jp*g"):
+                path, filename = os.path.split(filepath)
+                filename_noext, extension = filename.split('.')
+                command = series_config.waifu_command.format(
+                    input_image=filepath,
+                    output_image=folders.compiled_chapter + filename_noext + ".png",
+                    noise=series_config.waifu_noise,
+                    scale=series_config.waifu_scale
+                )
+                logger.debug("Running waifu command: " + command)
+                subprocess.Popen(command, shell=True, close_fds=False,
+                                 stdin=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                 stdout=subprocess.PIPE).communicate()
+                os.remove(filepath)
+                result_count += 1
+        finally:
+            os.chdir(wd)
+
+        elapsed = default_timer() - starttime
+        logger.info("Waifu'd " + str(result_count) + " files in {:5.2f}s".format(elapsed))
 
 
 def split_to_temp(filepath, temp_directory):
@@ -229,6 +262,10 @@ class SeriesConfig:
     local_input = None
     ads_folder = None
     waifu_key = None
+    waifu_working_directory = None
+    waifu_command = None
+    waifu_noise = 2
+    waifu_scale = 2
     arguments = ""
 
     def __init__(self, config_dict):
@@ -247,6 +284,14 @@ class SeriesConfig:
             self.ads_folder = source_dict["ads_folder"]
         if "waifu_key" in source_dict:
             self.waifu_key = source_dict["waifu_key"]
+        if "waifu_working_directory" in source_dict:
+            self.waifu_working_directory = source_dict["waifu_working_directory"]
+        if "waifu_command" in source_dict:
+            self.waifu_command = source_dict["waifu_command"]
+        if "waifu_noise" in source_dict:
+            self.waifu_noise = source_dict["waifu_noise"]
+        if "waifu_scale" in source_dict:
+            self.waifu_scale = source_dict["waifu_scale"]
         if "arguments" in source_dict:
             if self.arguments is not None and len(self.arguments) > 0:
                 self.arguments += " "
